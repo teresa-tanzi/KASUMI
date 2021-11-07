@@ -4,7 +4,10 @@
 CFLAGS := -O2 -Wall -ggdb		# opzioni di compilazione predefinite
 
 
-prova: prova.c Kasumi.o
+#prova: prova.c Kasumi.o
+#	gcc $(CFLAGS) $^ -o $@
+
+Sandwich: Sandwich.c Kasumi.o
 	gcc $(CFLAGS) $^ -o $@
 
 Kasumi.o: Kasumi.c Kasumi.h
