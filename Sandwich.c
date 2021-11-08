@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>		// rand(), srand()
 #include <time.h>    	// time()
+#include <math.h>       // pow()
+#include "uthash.h"
 #include "Kasumi.h"
 
 static u8 *Ka;
@@ -123,6 +125,11 @@ int main(void) {
     printHex("Cb", Pb, 8);
 
     /*-------------------------------------------------------------------------------------------
+     *      TODO: Store the pairs (C_a , C_b ) in a hash table indexed by the
+     *      32-bit value C_b^R (i.e., the right half of C_b ).
+     *-------------------------------------------------------------------------------------------*/
+
+    /*-------------------------------------------------------------------------------------------
 	 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x ),
 	 *		where A is the same constant as before, and Y_c assumes 2^24 arbitrary dif-
 	 *		ferent values. 
@@ -171,4 +178,10 @@ int main(void) {
     Kasumi(Pd);
 
     printHex("Cd", Pd, 8);
+
+    /*-------------------------------------------------------------------------------------------
+     *      TODO: Then, access the hash table in the entry
+     *      corresponding to the value C d R ⊕ 0010 0000 x , and for each pair (C a , C b )
+     *      found in this entry, apply Step 2 on the quartet (C a , C b , C c , C d ).
+     *-------------------------------------------------------------------------------------------*/
 }
