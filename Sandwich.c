@@ -7,23 +7,15 @@
  *-------------------------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <stdlib.h>		// rand(), srand()
+#include <time.h>    	// time()
 #include "Kasumi.h"
-
-/*-------------------------------------------------------------------------------------------
- * 1. Data Collection Phase:
- *		(a) Choose a structure of 2^24 ciphertexts of the form C_a = (X a , A), where
- *			A is ﬁxed and X a assumes 2^24 arbitrary diﬀerent values. Ask for the
- * 			decryption of all the ciphertexts under the key K_a and denote the plain-
- * 			text corresponding to C_a by P_a . For each P_a , ask for the encryption of
- * 			P_b = P_a ⊕ (0_x , 0010 0000_x) under the key K_b and denote the resulting
- * 			ciphertext by C_b . Store the pairs (C_a , C_b ) in a hash table indexed by the
- * 			32-bit value C_b^R (i.e., the right half of C_b ).
- *-------------------------------------------------------------------------------------------*/
 
 static u8 *Ka;
 static u8 Kb[16], Kc[16], Kd[16];
 
-static void printHex(u8 text[], int n) {
+static void printHex(char name[], u8 text[], int n) {
+	printf("%s:\t", name);
 	for (int i = 0; i < n; i++)
         printf("%02x ", text[i]);
     printf("\n");
@@ -58,7 +50,23 @@ static void generateRelatedKeys(u8 Ka[]) {
     }
 }
 
+/*-------------------------------------------------------------------------------------------
+ * 1. Data Collection Phase:
+ *-------------------------------------------------------------------------------------------*/
+
+ /*-------------------------------------------------------------------------------------------
+ *	(a) Choose a structure of 2^24 ciphertexts of the form C_a = (X_a, A), where
+ *		A is ﬁxed and X a assumes 2^24 arbitrary diﬀerent values. Ask for the
+ * 		decryption of all the ciphertexts under the key K_a and denote the plain-
+ * 		text corresponding to C_a by P_a . For each P_a , ask for the encryption of
+ * 		P_b = P_a ⊕ (0_x, 0010 0000_x) under the key K_b and denote the resulting
+ * 		ciphertext by C_b . Store the pairs (C_a, C_b ) in a hash table indexed by the
+ * 		32-bit value C_b^R (i.e., the right half of C_b ).
+ *-------------------------------------------------------------------------------------------*/
+
 int main(void) {
+	time_t t;
+
 	// Hardcoded key Ka
 	Ka = (u8 [16]) {
         0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
@@ -67,11 +75,58 @@ int main(void) {
 
     generateRelatedKeys(Ka);
 
-    printHex(Ka, 16);
-    printHex(Kb, 16);
-    printHex(Kc, 16);
-    printHex(Kd, 16);
+    printHex("Ka", Ka, 16);
+    printHex("Kb", Kb, 16);
+    printHex("Kc", Kc, 16);
+    printHex("Kd", Kd, 16);
 
+    /*-------------------------------------------------------------------------------------------
+	 *	(a) Choose a structure of 2^24 ciphertexts of the form C_a = (X_a, A), where
+	 *		A is ﬁxed and X a assumes 2^24 arbitrary diﬀerent values. 
+	 *-------------------------------------------------------------------------------------------*/
+
+	/* Intializes random number generator */
+	srand((unsigned) time(&t));
+
+	u8 Ca[8];
+	u8 A = 0xff;
+	for (int i = 0; i < 7; i++) {
+		Ca[i] = rand() % 255;		// 255_10 = ff_16 = 11111111_2
+    }
+    Ca[7] = A;
+
+    printHex("Ca", Ca, 8);
+
+    /*-------------------------------------------------------------------------------------------
+	 *		Ask for the decryption of all the ciphertexts under the key K_a and denote the plain-
+	 * 		text corresponding to C_a by P_a.
+	 *-------------------------------------------------------------------------------------------*/
+
+    KeySchedule(Ka);
+    KasumiDecipher(Ca);
+
+    printHex("Pa", Ca, 8);
+
+    /*-------------------------------------------------------------------------------------------
+	 *		For each P_a, ask for the encryption of P_b = P_a xor (0_x, 0010 0000_x) 
+	 *		under the key K_b and denote the resulting ciphertext by C_b.
+	 *-------------------------------------------------------------------------------------------*/
+
+    u8 Pb[8];
+    for (int i = 0; i < 6; i++) {
+    	Pb[i] = Ca[i];
+    }
+    Pb[7] = Ca[7] ^ 0x20;
+
+    printHex("Pb", Pb, 8);
+
+    KeySchedule(Kb);
+    Kasumi(Pb);
+
+    printHex("Cb", Pb, 8);
+
+
+    
 
     /*
     u8 text[8]  = {
