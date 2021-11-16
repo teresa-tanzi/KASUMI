@@ -29,14 +29,8 @@ static void printHex(char name[], u8 text[], int n) {
  * start with a plaintexts quartet (P_a , P_b , P_c , P_d ) such that:
  * P_a xor P_b = P_c xor P_d = A = (0, 0, 0010_x, 0)
  * and use keys (K_a, K_b, K_c, K_d) such that
- * K_a xor K_b = K_c xor K_d = ∆K_ab = (0, 0, 0, 0, 0, 0, 8000_x, 0)
- * K_a xor K_c = K_b xor K_d = ∆K_ac = (0, 0, 8000_x, 0, 0, 0, 0, 0)
- *
- * Let ΔK_ab = (0, 0, 8000_x , 0, 0, 0, 0, 0) and ΔK_ac = (0, 0, 0, 0, 0, 0, 8000_x , 0), and
- * let K_a , K_b = K_a xor ΔK_ab , K_c = K_a xor ΔK_ac , and K_d = K_c xor ΔK_ab be the
- * unknown related keys we wish to retrieve.
- *
- * TODO: non so quale delle due è corretta, aspetto risposta da Luca
+ * K_a xor K_b = K_c xor K_d = ∆K_ab =  (0, 0, 8000_x, 0, 0, 0, 0, 0)
+ * K_a xor K_c = K_b xor K_d = ∆K_ac = (0, 0, 0, 0, 0, 0, 8000_x, 0)
  *-------------------------------------------------------------------------------------------*/
 
 static void generateRelatedKeys(u8 Ka[]) {
@@ -93,8 +87,8 @@ int main(void) {
 
     u8 Pa[8];
     for (int i = 0; i < 8; i++) {
-        Pa[i] = rand() % 255;
-        //Pa[i] = 0xff;
+        //Pa[i] = rand() % 255;
+        Pa[i] = 0xff;
     }
     printHex("Pa", Pa, 8);
 
@@ -107,18 +101,29 @@ int main(void) {
     }
     printHex("Pb", Pb, 8);
     
+    u8 Ca[8];
+    //for (int i = 0; i < 8; i++) Ca[i] = Pa[i];
+    memcpy(Ca, &Pa[0], 8*sizeof(*Pa));
     KeySchedule(Ka);
-    Kasumi(Pa);
-    printHex("Ca", Pa, 8);
+    Kasumi(Ca);
+    printHex("Ca", Ca, 8);
 
+    u8 Cb[8];
+    //for (int i = 0; i < 8; i++) Cb[i] = Pb[i];
+    memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
     KeySchedule(Kb);
-    Kasumi(Pb);
-    printHex("Cb", Pb, 8);
+    Kasumi(Cb);
+    printHex("Cb", Cb, 8);
 
     /*-------------------------------------------------------------------------------------------
      *          TODO: inserting the plaintext pairs (P_a, P_b)
      *          into a hash table indexed by the values (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
      *-------------------------------------------------------------------------------------------*/
+
+    u8 hash[8];
+    memcpy(hash, &Ca[0], 4*sizeof(*Ca));
+    memcpy(hash+4, &Cb[0], 4*sizeof(*Cb));
+    printHex("HASH", hash, 8);
 
     /*-------------------------------------------------------------------------------------------
      *      (b) ask for the encryption for other 2^38 plaintexts pairs (P_c, P_d) such that
@@ -127,8 +132,8 @@ int main(void) {
 
     u8 Pc[8];
     for (int i = 0; i < 8; i++) {
-        Pc[i] = rand() % 255;
-        //Pc[i] = 0x11;
+        //Pc[i] = rand() % 255;
+        Pc[i] = 0x11;
     }
     printHex("Pc", Pc, 8);
 
@@ -141,13 +146,19 @@ int main(void) {
     }
     printHex("Pd", Pd, 8);
     
+    u8 Cc[8];
+    //for (int i = 0; i < 8; i++) Cc[i] = Pc[i];
+    memcpy(Cc, &Pc[0], 8*sizeof(*Pc));
     KeySchedule(Kc);
-    Kasumi(Pc);
-    printHex("Cc", Pc, 8);
+    Kasumi(Cc);
+    printHex("Cc", Cc, 8);
 
+    u8 Cd[8];
+    //for (int i = 0; i < 8; i++) Cd[i] = Pd[i];
+    memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
     KeySchedule(Kd);
-    Kasumi(Pd);
-    printHex("Cd", Pd, 8);
+    Kasumi(Cd);
+    printHex("Cd", Cd, 8);
 
     /*-------------------------------------------------------------------------------------------
      *          TODO: for each pair (P_c, P_d) the attacker accesses the hash table in the entry 
