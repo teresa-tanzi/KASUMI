@@ -6,7 +6,7 @@
  *
  *-------------------------------------------------------------------------------------------*/
 
-#include <stdio.h>
+#include <stdio.h>      // printf()
 #include <stdlib.h>		// rand(), srand()
 #include <time.h>    	// time()
 #include <math.h>       // pow()
