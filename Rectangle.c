@@ -119,6 +119,7 @@ void printEntries() {
 /*--------------------------------------- RECTANGLE -----------------------------------------*/
 
 int main(void) {
+	clock_t begin = clock();
 	time_t t;
 
 	// Hardcoded key Ka
@@ -177,13 +178,13 @@ int main(void) {
 	printHex("Cb", Cb, 8);
 
 	/*-------------------------------------------------------------------------------------------
-	 *          TODO: inserting the plaintext pairs (P_a, P_b)
+	 *          Inserting the plaintext pairs (P_a, P_b)
 	 *          into a hash table indexed by the values (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
 	 *-------------------------------------------------------------------------------------------*/
 
 	u8 index[8];
-	memcpy(index, &Ca[0], 4*sizeof(*Ca));
-	memcpy(index+4, &Cb[0], 4*sizeof(*Cb));
+	memcpy(index, &Ca[4], 4*sizeof(*Ca));
+	memcpy(index+4, &Cb[4], 4*sizeof(*Cb));
 	//printHex("INDEX", index, 8);
 
 	addEntry(index, Pa, Pb);
@@ -245,4 +246,8 @@ int main(void) {
 	 *          and for each pair (P_a, P_b) stored in the entry constructs the quartet 
 	 *          (P_a, P_b, P_c, P_d).
 	 *-------------------------------------------------------------------------------------------*/
+
+	clock_t end = clock();
+	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("Execution time: %f s\n", time_spent);
 }
