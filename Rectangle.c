@@ -23,6 +23,18 @@ static void printHex(char name[], u8 text[], int n) {
 		printf("%02x ", text[i]);
 	printf("\n");
 }
+
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+void printProgress(double percentage) {
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
+}
+
 										
 /*----------------------------------------- KEYS --------------------------------------------*/
 
@@ -130,10 +142,10 @@ int main(void) {
 
 	generateRelatedKeys(Ka);
 
-	printHex("Ka", Ka, 16);
-	printHex("Kb", Kb, 16);
-	printHex("Kc", Kc, 16);
-	printHex("Kd", Kd, 16);
+	//printHex("Ka", Ka, 16);
+	//printHex("Kb", Kb, 16);
+	//printHex("Kc", Kc, 16);
+	//printHex("Kd", Kd, 16);
 
 	/*-------------------------------------------------------------------------------------------
 	 * 1. Data Collection Phase:
@@ -147,125 +159,132 @@ int main(void) {
 	/* Intializes random number generator */
 	srand((unsigned) time(&t));
 
-	u8 Pa[8];
-	for (int i = 0; i < 8; i++) {
-		//Pa[i] = rand() % 255;
-		Pa[i] = 0xff;
+	for (int j = 0; j < pow(2, 20); j++) {
+		u8 Pa[8];
+		for (int i = 0; i < 8; i++) {
+			Pa[i] = rand() % 255;
+			//Pa[i] = 0xff;
+		}
+		//printHex("Pa", Pa, 8);
+
+		u8 Pb[8];
+		for (int i = 0; i < 8; i++) {
+			if (i == 5)
+				Pb[i] = Pa[i] ^ 0x10;
+			else
+				Pb[i] = Pa[i];
+		}
+		//printHex("Pb", Pb, 8);
+		
+		u8 Ca[8];
+		//for (int i = 0; i < 8; i++) Ca[i] = Pa[i];
+		memcpy(Ca, &Pa[0], 8*sizeof(*Pa));
+		KeySchedule(Ka);
+		Kasumi(Ca);
+		//printHex("Ca", Ca, 8);
+
+		u8 Cb[8];
+		//for (int i = 0; i < 8; i++) Cb[i] = Pb[i];
+		memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
+		KeySchedule(Kb);
+		Kasumi(Cb);
+		//printHex("Cb", Cb, 8);
+
+		/*-------------------------------------------------------------------------------------------
+		 *          Inserting the plaintext pairs (P_a, P_b)
+		 *          into a hash table indexed by the values (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
+		 *-------------------------------------------------------------------------------------------*/
+
+		u8 index[8];
+		memcpy(index, &Ca[4], 4*sizeof(*Ca));
+		memcpy(index+4, &Cb[4], 4*sizeof(*Cb));
+		//printHex("INDEX", index, 8);
+
+		addEntry(index, Pa, Pb);
+		//printEntries();
+
+		/*
+		printf("Searching for element in hash table...\n");
+
+		struct hashEntry *h;
+		struct hashValue *v;
+
+		h = findEntry(index);
+		v = &h -> PaPb;
+
+		if (h) {
+			printHex("INDEX", h -> index, 8);
+			printHex("FOUND", v -> Pa, 8);
+			printHex("FOUND", v -> Pb, 8);
+		}
+		else printf("id unknown\n");
+		*/
 	}
-	printHex("Pa", Pa, 8);
-
-	u8 Pb[8];
-	for (int i = 0; i < 8; i++) {
-		if (i == 5)
-			Pb[i] = Pa[i] ^ 0x10;
-		else
-			Pb[i] = Pa[i];
-	}
-	printHex("Pb", Pb, 8);
-	
-	u8 Ca[8];
-	//for (int i = 0; i < 8; i++) Ca[i] = Pa[i];
-	memcpy(Ca, &Pa[0], 8*sizeof(*Pa));
-	KeySchedule(Ka);
-	Kasumi(Ca);
-	printHex("Ca", Ca, 8);
-
-	u8 Cb[8];
-	//for (int i = 0; i < 8; i++) Cb[i] = Pb[i];
-	memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
-	KeySchedule(Kb);
-	Kasumi(Cb);
-	printHex("Cb", Cb, 8);
-
-	/*-------------------------------------------------------------------------------------------
-	 *          Inserting the plaintext pairs (P_a, P_b)
-	 *          into a hash table indexed by the values (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
-	 *-------------------------------------------------------------------------------------------*/
-
-	u8 index[8];
-	memcpy(index, &Ca[4], 4*sizeof(*Ca));
-	memcpy(index+4, &Cb[4], 4*sizeof(*Cb));
-	//printHex("INDEX", index, 8);
-
-	addEntry(index, Pa, Pb);
-	//printEntries();
-
-	printf("Searching for element in hash table...\n");
-
-	struct hashEntry *h;
-	struct hashValue *v;
-
-	h = findEntry(index);
-	v = &h -> PaPb;
-
-	if (h) {
-		printHex("INDEX", h -> index, 8);
-		printHex("FOUND", v -> Pa, 8);
-		printHex("FOUND", v -> Pb, 8);
-	}
-	else printf("id unknown\n");
 
 	/*-------------------------------------------------------------------------------------------
 	 *      (b) ask for the encryption for other 2^38 plaintexts pairs (P_c, P_d) such that
 	 *          P_c xor P_d = A with keys K_c, K_d
 	 *-------------------------------------------------------------------------------------------*/
 
-	u8 Pc[8];
-	for (int i = 0; i < 8; i++) {
-		//Pc[i] = rand() % 255;
-		Pc[i] = 0x11;
+	for (int j = 0; j < pow(2, 20); j++) {
+		u8 Pc[8];
+		for (int i = 0; i < 8; i++) {
+			Pc[i] = rand() % 255;
+			//Pc[i] = 0x11;
+		}
+		//printHex("Pc", Pc, 8);
+
+		u8 Pd[8];
+		for (int i = 0; i < 8; i++) {
+			if (i == 5)
+				Pd[i] = Pc[i] ^ 0x10;
+			else
+				Pd[i] = Pc[i];
+		}
+		//printHex("Pd", Pd, 8);
+		
+		u8 Cc[8];
+		//for (int i = 0; i < 8; i++) Cc[i] = Pc[i];
+		memcpy(Cc, &Pc[0], 8*sizeof(*Pc));
+		KeySchedule(Kc);
+		Kasumi(Cc);
+		//printHex("Cc", Cc, 8);
+
+		u8 Cd[8];
+		//for (int i = 0; i < 8; i++) Cd[i] = Pd[i];
+		memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
+		KeySchedule(Kd);
+		Kasumi(Cd);
+		//printHex("Cd", Cd, 8);
+
+		/*-------------------------------------------------------------------------------------------
+		 *          TODO: for each pair (P_c, P_d) the attacker accesses the hash table in the entry 
+		 *          corresponding to the value (C_c^RL xor 0010_x, C_c^RR, C_d^RL xor 0010_x, C_d^RR)
+		 *          and for each pair (P_a, P_b) stored in the entry constructs the quartet 
+		 *          (P_a, P_b, P_c, P_d).
+		 *-------------------------------------------------------------------------------------------*/
+
+		//printf("Searching for element in hash table...\n");
+
+		u8 index[8];
+		memcpy(index, &Cc[4], 4*sizeof(*Cc));
+		memcpy(index+4, &Cd[4], 4*sizeof(*Cd));
+		index[1] = index[1] ^ 0x10;
+		index[5] = index[5] ^ 0x10;
+		//printHex("INDEX", index, 8);
+
+		struct hashEntry *h;
+		struct hashValue *v;
+
+		h = findEntry(index);
+		
+		if (h) {
+			v = &h -> PaPb;
+			printHex("FOUND", v -> Pa, 8);
+			printHex("FOUND", v -> Pb, 8);
+		}
+		//else printf("id unknown\n");
 	}
-	printHex("Pc", Pc, 8);
-
-	u8 Pd[8];
-	for (int i = 0; i < 8; i++) {
-		if (i == 5)
-			Pd[i] = Pc[i] ^ 0x10;
-		else
-			Pd[i] = Pc[i];
-	}
-	printHex("Pd", Pd, 8);
-	
-	u8 Cc[8];
-	//for (int i = 0; i < 8; i++) Cc[i] = Pc[i];
-	memcpy(Cc, &Pc[0], 8*sizeof(*Pc));
-	KeySchedule(Kc);
-	Kasumi(Cc);
-	printHex("Cc", Cc, 8);
-
-	u8 Cd[8];
-	//for (int i = 0; i < 8; i++) Cd[i] = Pd[i];
-	memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
-	KeySchedule(Kd);
-	Kasumi(Cd);
-	printHex("Cd", Cd, 8);
-
-	/*-------------------------------------------------------------------------------------------
-	 *          TODO: for each pair (P_c, P_d) the attacker accesses the hash table in the entry 
-	 *          corresponding to the value (C_c^RL xor 0010_x, C_c^RR, C_d^RL xor 0010_x, C_d^RR)
-	 *          and for each pair (P_a, P_b) stored in the entry constructs the quartet 
-	 *          (P_a, P_b, P_c, P_d).
-	 *-------------------------------------------------------------------------------------------*/
-
-	printf("Searching for element in hash table...\n");
-
-	memcpy(index, &Cc[4], 4*sizeof(*Cc));
-	memcpy(index+4, &Cd[4], 4*sizeof(*Cd));
-	index[1] = index[1] ^ 0x10;
-	index[5] = index[5] ^ 0x10;
-	printHex("INDEX", index, 8);
-
-	//free(h);
-	//free(v);
-
-	h = findEntry(index);
-	
-	if (h) {
-		v = &h -> PaPb;
-		printHex("FOUND", v -> Pa, 8);
-		printHex("FOUND", v -> Pb, 8);
-	}
-	else printf("id unknown\n");
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
