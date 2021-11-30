@@ -190,7 +190,7 @@ int main(void) {
 	addEntry(index, Pa, Pb);
 	//printEntries();
 
-	printf("Searching for element in hast table...\n");
+	printf("Searching for element in hash table...\n");
 
 	struct hashEntry *h;
 	struct hashValue *v;
@@ -246,6 +246,26 @@ int main(void) {
 	 *          and for each pair (P_a, P_b) stored in the entry constructs the quartet 
 	 *          (P_a, P_b, P_c, P_d).
 	 *-------------------------------------------------------------------------------------------*/
+
+	printf("Searching for element in hash table...\n");
+
+	memcpy(index, &Cc[4], 4*sizeof(*Cc));
+	memcpy(index+4, &Cd[4], 4*sizeof(*Cd));
+	index[1] = index[1] ^ 0x10;
+	index[5] = index[5] ^ 0x10;
+	printHex("INDEX", index, 8);
+
+	//free(h);
+	//free(v);
+
+	h = findEntry(index);
+	
+	if (h) {
+		v = &h -> PaPb;
+		printHex("FOUND", v -> Pa, 8);
+		printHex("FOUND", v -> Pb, 8);
+	}
+	else printf("id unknown\n");
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
