@@ -133,6 +133,7 @@ void printEntries() {
 int main(void) {
 	clock_t begin = clock();
 	time_t t;
+	int nPlaintext = pow(2, 25);		// should be pow(2, 38)
 
 	// Hardcoded key Ka
 	Ka = (u8 [16]) {
@@ -156,18 +157,21 @@ int main(void) {
 	 *          P_a xor P_b = A = (0, 0, 0010_x, 0) with keys K_a, K_b
 	 *-------------------------------------------------------------------------------------------*/
 
-	/* Intializes random number generator */
-	srand((unsigned) time(&t));
+	srand((unsigned) time(&t));		// Initializes random number generator
+	int z = 0;						// Initializes the progress bar
 
-	for (int j = 0; j < pow(2, 20); j++) {
-		u8 Pa[8];
+	u8 Pa[8], Pb[8], Pc[8], Pd[8], Ca[8], Cb[8], Cc[8], Cd[8];
+
+	printf("Generating Pa, Pb coupples...\n");
+
+	for (int j = 0; j < nPlaintext; j++) {
+		
 		for (int i = 0; i < 8; i++) {
 			Pa[i] = rand() % 255;
 			//Pa[i] = 0xff;
 		}
 		//printHex("Pa", Pa, 8);
 
-		u8 Pb[8];
 		for (int i = 0; i < 8; i++) {
 			if (i == 5)
 				Pb[i] = Pa[i] ^ 0x10;
@@ -175,15 +179,13 @@ int main(void) {
 				Pb[i] = Pa[i];
 		}
 		//printHex("Pb", Pb, 8);
-		
-		u8 Ca[8];
+
 		//for (int i = 0; i < 8; i++) Ca[i] = Pa[i];
 		memcpy(Ca, &Pa[0], 8*sizeof(*Pa));
 		KeySchedule(Ka);
 		Kasumi(Ca);
 		//printHex("Ca", Ca, 8);
 
-		u8 Cb[8];
 		//for (int i = 0; i < 8; i++) Cb[i] = Pb[i];
 		memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
 		KeySchedule(Kb);
@@ -219,22 +221,33 @@ int main(void) {
 		}
 		else printf("id unknown\n");
 		*/
+
+		//printf("%f\n", z * (nPlaintext/100.0));
+		//break;
+		if (j > z * (nPlaintext/100.0)) {
+			printProgress(z/100.0);
+			z++;
+		} else if (j == nPlaintext - 1) 
+			printProgress(1);
 	}
+	printf("\n");
 
 	/*-------------------------------------------------------------------------------------------
 	 *      (b) ask for the encryption for other 2^38 plaintexts pairs (P_c, P_d) such that
 	 *          P_c xor P_d = A with keys K_c, K_d
 	 *-------------------------------------------------------------------------------------------*/
 
-	for (int j = 0; j < pow(2, 20); j++) {
-		u8 Pc[8];
+	z = 1;
+
+	printf("Generating Pc, Pd coupples...\n");
+
+	for (int j = 0; j < nPlaintext; j++) {
 		for (int i = 0; i < 8; i++) {
 			Pc[i] = rand() % 255;
 			//Pc[i] = 0x11;
 		}
 		//printHex("Pc", Pc, 8);
 
-		u8 Pd[8];
 		for (int i = 0; i < 8; i++) {
 			if (i == 5)
 				Pd[i] = Pc[i] ^ 0x10;
@@ -243,14 +256,12 @@ int main(void) {
 		}
 		//printHex("Pd", Pd, 8);
 		
-		u8 Cc[8];
 		//for (int i = 0; i < 8; i++) Cc[i] = Pc[i];
 		memcpy(Cc, &Pc[0], 8*sizeof(*Pc));
 		KeySchedule(Kc);
 		Kasumi(Cc);
 		//printHex("Cc", Cc, 8);
 
-		u8 Cd[8];
 		//for (int i = 0; i < 8; i++) Cd[i] = Pd[i];
 		memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
 		KeySchedule(Kd);
@@ -282,9 +293,20 @@ int main(void) {
 			v = &h -> PaPb;
 			printHex("FOUND", v -> Pa, 8);
 			printHex("FOUND", v -> Pb, 8);
+		
+			free(v);
 		}
 		//else printf("id unknown\n");
+
+		free(h);
+
+		if (j > z * (nPlaintext/100.0)) {
+			printProgress(z/100.0);
+			z++;
+		} else if (j == nPlaintext - 1) 
+			printProgress(1);
 	}
+	printf("\n");
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
