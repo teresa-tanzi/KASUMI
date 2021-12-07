@@ -1,11 +1,12 @@
 # serve ad automatizzare il corretto aggiornamento di più file che hanno delle dipendenze
 
 
-CFLAGS := -O2 -Wall -ggdb		# opzioni di compilazione predefinite
+CFLAGS := -O2 -Wall -ggdb 		# opzioni di compilazione predefinite
+#CFLAGS := -O3 -fomit-frame-pointer -funroll-loops		# opzioni di compilazione nel paper
+#LIB := `pkg-config --libs --cflags glib-2.0`
 
-
-#prova: prova.c Kasumi.o
-#	gcc $(CFLAGS) $^ -o $@
+#Rectangle_glibc: Rectangle_glib.c Kasumi.o
+#	gcc $(CFLAGS) $^ -o $@  $(LIB)
 
 Rectangle: Rectangle.c Kasumi.o
 	gcc $(CFLAGS) $^ -o $@

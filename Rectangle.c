@@ -11,11 +11,14 @@
 #include <stdlib.h>		// rand(), srand()
 #include <time.h>    	// time()
 #include <math.h>       // pow()
-#include "uthash.h"     // hashtable
+#include <sys/resource.h>
+#include "uthash.h"     // https://troydhanson.github.io/uthash/
 #include "Kasumi.h"
 
 
 /*---------------------------------------- utility ------------------------------------------*/
+
+struct rusage usage;
 
 static void printHex(char name[], u8 text[], int n) {
 	printf("%s:\t", name);
@@ -34,8 +37,7 @@ void printProgress(double percentage) {
     printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
     fflush(stdout);
 }
-
-										
+									
 /*----------------------------------------- KEYS --------------------------------------------*/
 
 static u8 *Ka;
@@ -133,7 +135,10 @@ void printEntries() {
 int main(void) {
 	clock_t begin = clock();
 	time_t t;
-	int nPlaintext = pow(2, 25);		// should be pow(2, 38)
+	int exp = 25;
+	int nPlaintext = pow(2, exp);		// should be pow(2, 38). a pow(2, 26) va in overflow
+
+	printf("Try with 2^%d plaintexts\n", exp);
 
 	// Hardcoded key Ka
 	Ka = (u8 [16]) {
@@ -161,8 +166,9 @@ int main(void) {
 	int z = 0;						// Initializes the progress bar
 
 	u8 Pa[8], Pb[8], Pc[8], Pd[8], Ca[8], Cb[8], Cc[8], Cd[8];
+	u8 index[8];
 
-	printf("Generating Pa, Pb coupples...\n");
+	printf("Generating Pa, Pb couples...\n");
 
 	for (int j = 0; j < nPlaintext; j++) {
 		
@@ -170,7 +176,7 @@ int main(void) {
 			Pa[i] = rand() % 255;
 			//Pa[i] = 0xff;
 		}
-		//printHex("Pa", Pa, 8);
+		//printHex("Pa", Pa, 8); 
 
 		for (int i = 0; i < 8; i++) {
 			if (i == 5)
@@ -197,7 +203,6 @@ int main(void) {
 		 *          into a hash table indexed by the values (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
 		 *-------------------------------------------------------------------------------------------*/
 
-		u8 index[8];
 		memcpy(index, &Ca[4], 4*sizeof(*Ca));
 		memcpy(index+4, &Cb[4], 4*sizeof(*Cb));
 		//printHex("INDEX", index, 8);
@@ -239,7 +244,7 @@ int main(void) {
 
 	z = 1;
 
-	printf("Generating Pc, Pd coupples...\n");
+	printf("Generating Pc, Pd couples...\n");
 
 	for (int j = 0; j < nPlaintext; j++) {
 		for (int i = 0; i < 8; i++) {
@@ -277,7 +282,6 @@ int main(void) {
 
 		//printf("Searching for element in hash table...\n");
 
-		u8 index[8];
 		memcpy(index, &Cc[4], 4*sizeof(*Cc));
 		memcpy(index+4, &Cd[4], 4*sizeof(*Cd));
 		index[1] = index[1] ^ 0x10;
@@ -294,11 +298,10 @@ int main(void) {
 			printHex("FOUND", v -> Pa, 8);
 			printHex("FOUND", v -> Pb, 8);
 		
+			free(h);
 			free(v);
 		}
 		//else printf("id unknown\n");
-
-		free(h);
 
 		if (j > z * (nPlaintext/100.0)) {
 			printProgress(z/100.0);
@@ -310,5 +313,12 @@ int main(void) {
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("Execution time: %f s\n", time_spent);
+	printf("Execution time (s): %.2f\n", time_spent);
+
+	if (!getrusage(RUSAGE_SELF, &usage)) {
+	    printf("Maximum resident set size (GB): %.2f\n", usage.ru_maxrss/1000000.0);
+	} else {
+	    perror("getrusage");
+	}
+
 }
