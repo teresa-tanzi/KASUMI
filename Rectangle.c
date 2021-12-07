@@ -76,14 +76,17 @@ static void generateRelatedKeys(u8 Ka[]) {
 
 /*--------------------------------------- HASHTABLE -----------------------------------------*/
 
+/*
 struct hashValue {
 	u8 Pa[8];           	// value1:  P_a
 	u8 Pb[8];				// value2:  P_b
 };
+*/
 
 struct hashEntry {
 	u8 index[8];     	    // key:     (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
-	struct hashValue PaPb;	// value:	(P_a, P_b)
+	//struct hashValue PaPb;	
+	u8 PaPb[16];			// value:	(P_a, P_b)
 	UT_hash_handle hh;  	// makes this structure hashable
 };
 
@@ -91,18 +94,20 @@ struct hashEntry *hashTable = NULL;
 
 void addEntry(u8 index[], u8 Pa[], u8 Pb[]) {
 	struct hashEntry *h;
-	struct hashValue *v;
+	//struct hashValue *v;
 
-	v = malloc(sizeof(struct hashValue));
+	//v = malloc(sizeof(struct hashValue));
 	h = malloc(sizeof(struct hashEntry));
 
 	for (int i = 0; i < 8; i++) {
 		h -> index[i] = index[i];
-		v -> Pa[i] = Pa[i];
-		v -> Pb[i] = Pb[i];
+		//v -> Pa[i] = Pa[i];
+		//v -> Pb[i] = Pb[i];
+		h -> PaPb[i] = Pa[i];
+		h -> PaPb[i + 8] = Pb[i];
 	}
 
-	h -> PaPb = *v;
+	//h -> PaPb = *v;
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
 	HASH_ADD(hh, hashTable, index[0], keylen, h);
@@ -119,14 +124,16 @@ struct hashEntry *findEntry(u8 index[]) {
 
 void printEntries() {
     struct hashEntry *h;
-    struct hashValue *v;
+    //struct hashValue *v;
 
     for(h = hashTable; h != NULL; h = (struct hashEntry*)(h -> hh.next)) {
     	printHex("H_id", h -> index, 8);
 
-    	v = &h -> PaPb;
-    	printHex("H_Pa", v -> Pa, 8);
-    	printHex("H_Pb", v -> Pb, 8);
+    	//v = &h -> PaPb;
+    	//printHex("H_Pa", v -> Pa, 8);
+    	//printHex("H_Pb", v -> Pb, 8);
+    	printHex("H_Pa", h -> PaPb, 8);
+    	printHex("H_Pb", h -> PaPb + 8, 8);
     }
 }
 
@@ -289,20 +296,22 @@ int main(void) {
 		//printHex("INDEX", index, 8);
 
 		struct hashEntry *h;
-		struct hashValue *v;
+		//struct hashValue *v;
 
 		h = findEntry(index);
 		
 		if (h) {
-			v = &h -> PaPb;
-			printHex("FOUND", v -> Pa, 8);
-			printHex("FOUND", v -> Pb, 8);
-		
+			//v = &h -> PaPb;
+			//printHex("FOUND", v -> Pa, 8);
+			//printHex("FOUND", v -> Pb, 8);
+			printHex("FOUND", h -> PaPb, 8);
+			printHex("FOUND", h -> PaPb + 8, 8);
+
 			free(h);
-			free(v);
+			//free(v);
 		}
 		//else printf("id unknown\n");
-
+		
 		if (j > z * (nPlaintext/100.0)) {
 			printProgress(z/100.0);
 			z++;
