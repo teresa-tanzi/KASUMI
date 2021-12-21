@@ -6,6 +6,7 @@ CFLAGS := -O2 -Wall -ggdb		# opzioni di compilazione predefinite
 #LIB := `pkg-config --libs --cflags glib-2.0`
 LIB := -lm
 
+
 Sandwich: Sandwich.c Kasumi.o
 	gcc $(CFLAGS) $^ -o $@ $(LIB)
 

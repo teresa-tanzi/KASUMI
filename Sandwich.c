@@ -277,7 +277,7 @@ int main(void) {
         //printHex("Cd", Cd, 8);
 
         /*-------------------------------------------------------------------------------------------
-         *      TODO: Then, access the hash table in the entry
+         *      Then, access the hash table in the entry
          *      corresponding to the value C_d^R ⊕ 00100000_x , and for each pair (C_a, C_b)
          *      found in this entry, apply Step 2 on the quartet (C_a, C_b, C_c, C_d).
          *-------------------------------------------------------------------------------------------*/
@@ -319,3 +319,13 @@ int main(void) {
         perror("getrusage");
     }
 }
+
+/*-------------------------------------------------------------------------------------------
+ * TODO 2. Identifying the Right Quartets:
+ *-------------------------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------------------------
+ *	(a) Insert the approximately 2^16 remaining quartets (C_a, C_b, C_c, C_d) into a
+		hash table indexed by the 32-bit value C_a^L XOR C_c^L , and apply Step 3 only
+		to bins which contain at least three quartets.
+ *-------------------------------------------------------------------------------------------*/
