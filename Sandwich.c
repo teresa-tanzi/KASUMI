@@ -340,7 +340,7 @@ int main(void) {
 		if (h) {
 
 			/*-------------------------------------------------------------------------------------------
-			 * TODO 2. Identifying the Right Quartets:
+			 * 2. Identifying the Right Quartets:
 			 *-------------------------------------------------------------------------------------------*/
 
 			/*-------------------------------------------------------------------------------------------
@@ -392,4 +392,9 @@ int main(void) {
 	}
 }
 
+// TODO: liberare la memoria assegnata alla prima hash table
+// TODO: calcolare il numero di right quartet potenziali direttamente dalla seconda hash table
 
+/*-------------------------------------------------------------------------------------------
+ *		TODO apply Step 3 only to bins which contain at least three quartets.
+ *-------------------------------------------------------------------------------------------*/
