@@ -15,7 +15,7 @@
 #include "Kasumi.h"
 
 
-/*---------------------------------------- utility ------------------------------------------*/
+/*---------------------------------------- UTILITY ------------------------------------------*/
 
 struct rusage usage;
 
@@ -73,6 +73,8 @@ static void generateRelatedKeys(u8 Ka[]) {
 
 /*--------------------------------------- HASHTABLE -----------------------------------------*/
 
+/*------------------------------------ Data Collection --------------------------------------*/
+
 struct dataCollectionEntry {
 	u8 index[4];            // key:     (C_b^R)     8 Byte  
 	u8 CaCb[16];            // value:   (C_a, C_b)                          16 Byte
@@ -115,6 +117,17 @@ void printDataCollectionEntries() {
 		printHex("H_Cb", h -> CaCb + 8, 8);
 	}
 }
+
+void deleteAllDataCollectionEntries() {
+	struct dataCollectionEntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, dataCollectionTable, currentEntry, tmp) {
+    	HASH_DEL(dataCollectionTable, currentEntry);  			/* delete it (entries advances to next) */
+    	free(currentEntry);             						/* free it */
+    }
+}
+
+/*------------------------------------ Right Quartets ---------------------------------------*/
 
 struct rightQuartetsEntry {
 	u8 index[4];            // key:     (C_a^L XOR C_c^L)		    8 Byte  
@@ -163,6 +176,15 @@ void printRightQuartetsEntries() {
 	}
 }
 
+void deleteAllRightQuartetsEntries() {
+	struct rightQuartetsEntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, rightQuartetsTable, currentEntry, tmp) {
+    	HASH_DEL(rightQuartetsTable, currentEntry);  			/* delete it (entries advances to next) */
+    	free(currentEntry);             						/* free it */
+    }
+}
+
 /*--------------------------------------- SANDWICH -----------------------------------------*/
 
 int main(void) {
@@ -195,7 +217,6 @@ int main(void) {
 
 	srand((unsigned) time(&t));    // Initializes random number generator
 	int z = 0;                     // Initializes the progress bar
-	int collision = 0;              // Number of collisions found in the hash
 
 	u8 Pa[8], Pb[8], Pc[8], Pd[8], Ca[8], Cb[8], Cc[8], Cd[8];
 	u8 indexDC[4], indexRQ[4];
@@ -364,8 +385,6 @@ int main(void) {
 
 			//printHex("FOUND", h -> CaCb, 8);
 			//printHex("FOUND", h -> CaCb + 8, 8);
-			
-			collision++;
 
 			//free(h);		// se lo lascio segfaulta
 		}
@@ -379,7 +398,16 @@ int main(void) {
 	}
 	printf("\n");
 	/* leaves about 2^16 quartets with the required diﬀerences */
-	printf("I have found 2^%.2f potential right quartets.\n", log((double)collision)/log(2));
+	printf("I have found 2^%.2f potential right quartets.\n", log((double)HASH_COUNT(rightQuartetsTable))/log(2));
+
+	// Free the memory used for the first hash table: the data we need now on are on the new hash table
+	deleteAllDataCollectionEntries();
+
+	/*-------------------------------------------------------------------------------------------
+	 *		TODO apply Step 3 only to bins which contain at least three quartets.
+	 *-------------------------------------------------------------------------------------------*/
+
+
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -392,9 +420,4 @@ int main(void) {
 	}
 }
 
-// TODO: liberare la memoria assegnata alla prima hash table
-// TODO: calcolare il numero di right quartet potenziali direttamente dalla seconda hash table
 
-/*-------------------------------------------------------------------------------------------
- *		TODO apply Step 3 only to bins which contain at least three quartets.
- *-------------------------------------------------------------------------------------------*/
