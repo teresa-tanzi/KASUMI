@@ -11,7 +11,7 @@
 #include <time.h>    	   	// time()
 #include <math.h>          	// pow()
 #include <sys/resource.h>
-#include "uthash.h"
+#include "uthash.h"			// https://troydhanson.github.io/uthash/
 #include "Kasumi.h"
 
 
@@ -35,6 +35,16 @@ void printProgress(double percentage) {
 	int rpad = PBWIDTH - lpad;
 	printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
 	fflush(stdout);
+}
+
+//function to compare array elements
+char compareArray(u8 a[], u8 b[], int size)	{
+	int i;
+	for (i = 0; i < size; i++) {
+		if (a[i] != b[i])
+			return 0;	// false
+	}
+	return 1;			// true
 }
 
 /*----------------------------------------- KEYS --------------------------------------------*/
@@ -155,6 +165,11 @@ void addRightQuartetsEntry(u8 index[], u8 Ca[], u8 Cb[], u8 Cc[], u8 Cd[]) {
 	HASH_ADD(hh, rightQuartetsTable, index[0], keylen, h);
 }
 
+void deleteRightQuartetsEntry(struct rightQuartetsEntry *h) {
+	HASH_DEL(rightQuartetsTable, h);
+	free(h);
+}
+
 struct rightQuartetsEntry *findRightQuartetsEntry(u8 index[]) {
 	struct rightQuartetsEntry *h;
 
@@ -174,6 +189,22 @@ void printRightQuartetsEntries() {
 		printHex("H_Cc", h -> CaCbCcCd + 16, 8);
 		printHex("H_Cd", h -> CaCbCcCd + 24, 8);
 	}
+}
+
+int indexSort(struct rightQuartetsEntry *a, struct rightQuartetsEntry *b) {
+	for (int i = 0; i < 4; i++) {
+		if ((a -> index)[i] > (b -> index)[i]) {
+			return 1;
+		} else if ((a -> index)[i] < (b -> index)[i]) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+void sortRightQuartetsTable() {
+    HASH_SORT(rightQuartetsTable, indexSort);
 }
 
 void deleteAllRightQuartetsEntries() {
@@ -224,7 +255,8 @@ int main(void) {
 		0xff, 0xff, 0xff, 0xff,
 	};
 
-	printf("Generating Ca, Pa, Pb and Cc...\n");
+	printf("PHASE 1: DATA COLLECTION\n");
+	printf("Generating Ca, Pa, Pb and Cb...\n");
 
 	for (int j = 0; j < nPlaintext; j++) {
 
@@ -287,7 +319,7 @@ int main(void) {
 	}
 	printf("\n");
 
-	printf("Hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, dataCollectionTable)/1000000000.0);
+	printf("Data collection hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, dataCollectionTable)/1000000000.0);
 
 	/*-------------------------------------------------------------------------------------------
 	 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x ),
@@ -308,7 +340,7 @@ int main(void) {
 			if (i != 1)
 				Cc[4+i] = A[i];
 			else
-				Cc  [4+i] = A[i] ^ 0x10;
+				Cc[4+i] = A[i] ^ 0x10;
 		}
 
 		//printHex("Cc", Cc, 8);    
@@ -378,7 +410,7 @@ int main(void) {
 
 			memcpy(indexRQ, &Ca[0], 4*sizeof(*Ca));
 			for (int i = 0; i < 4; i++) {
-				indexRQ[i] = indexRQ[i] ^ Cb[i];
+				indexRQ[i] = indexRQ[i] ^ Cc[i];
 			}
 
 			addRightQuartetsEntry(indexRQ, Ca, Cb, Cc, Cd);
@@ -398,7 +430,7 @@ int main(void) {
 	}
 	printf("\n");
 	/* leaves about 2^16 quartets with the required diﬀerences */
-	printf("I have found 2^%.2f potential right quartets.\n", log((double)HASH_COUNT(rightQuartetsTable))/log(2));
+	printf("I have found 2^%.1f potential right quartets.\n", log((double)HASH_COUNT(rightQuartetsTable))/log(2));
 
 	// Free the memory used for the first hash table: the data we need now on are on the new hash table
 	deleteAllDataCollectionEntries();
@@ -407,7 +439,35 @@ int main(void) {
 	 *		TODO apply Step 3 only to bins which contain at least three quartets.
 	 *-------------------------------------------------------------------------------------------*/
 
+	printf("PHASE 2: IDENTIFIING RIGHT QUARTETS\n");
+	printf("Right quartets hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, rightQuartetsTable)/1000000000.0);
 
+	sortRightQuartetsTable();
+
+	struct rightQuartetsEntry *q;
+	u8 currentIndex[4];
+	memcpy(currentIndex, rightQuartetsTable -> index, 4*sizeof(*currentIndex));
+	int counter = 0;
+
+	for (q = rightQuartetsTable; q != NULL; q = q -> hh.next) {
+		// controllo se l'indice è uguale a quello salvato
+		if (compareArray(q -> index, currentIndex, 4)) {
+			// l'indice è uguale, quindi incremento il counter
+			counter++;
+			// se il counter arriva a 3, ho una collisione che mi interessa
+			if (counter == 3) {
+				printf("3-collision found!\n");
+				printHex("current", currentIndex, 4);
+				printHex("index\t", q -> index, 4);
+			}
+		} else {
+			// l'indice di adesso è diverso da quello salvato:
+			// porto il counter ad 1
+			counter = 1;
+			// cambio il current index
+			memcpy(currentIndex, q -> index, 4*sizeof(*currentIndex));
+		}
+	}
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -419,5 +479,3 @@ int main(void) {
 		perror("getrusage");
 	}
 }
-
-
