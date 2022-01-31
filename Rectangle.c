@@ -84,10 +84,10 @@ struct hashValue {
 */
 
 struct hashEntry {
-	u8 index[8];     	    // key:     (C_a^RL, C_a^RR, C_b^RL, C_b^RR)
+	u8 index[8];     	    // key:     (C_a^RL, C_a^RR, C_b^RL, C_b^RR)	 8 Byte
 	//struct hashValue PaPb;	
-	u8 PaPb[16];			// value:	(P_a, P_b)
-	UT_hash_handle hh;  	// makes this structure hashable
+	u8 PaPb[16];			// value:	(P_a, P_b)							16 Byte
+	UT_hash_handle hh;  	// makes this structure hashable 				56 Byte
 };
 
 struct hashEntry *hashTable = NULL;
@@ -98,6 +98,8 @@ void addEntry(u8 index[], u8 Pa[], u8 Pb[]) {
 
 	//v = malloc(sizeof(struct hashValue));
 	h = malloc(sizeof(struct hashEntry));
+	//printf("h size: %ld\n", sizeof(struct hashEntry));	80
+	//printf("Pa size: %ld\n", sizeof(UT_hash_handle));		56
 
 	for (int i = 0; i < 8; i++) {
 		h -> index[i] = index[i];
@@ -142,7 +144,7 @@ void printEntries() {
 int main(void) {
 	clock_t begin = clock();
 	time_t t;
-	int exp = 25;
+	int exp = 24;
 	int nPlaintext = pow(2, exp);		// should be pow(2, 38). a pow(2, 26) va in overflow
 
 	printf("Try with 2^%d plaintexts\n", exp);
@@ -198,6 +200,7 @@ int main(void) {
 		KeySchedule(Ka);
 		Kasumi(Ca);
 		//printHex("Ca", Ca, 8);
+		//printf("Ca: %p\n", Ca);
 
 		//for (int i = 0; i < 8; i++) Cb[i] = Pb[i];
 		memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
@@ -243,6 +246,8 @@ int main(void) {
 			printProgress(1);
 	}
 	printf("\n");
+
+	printf("Hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, hashTable)/1000000000.0);
 
 	/*-------------------------------------------------------------------------------------------
 	 *      (b) ask for the encryption for other 2^38 plaintexts pairs (P_c, P_d) such that
@@ -329,5 +334,4 @@ int main(void) {
 	} else {
 	    perror("getrusage");
 	}
-
 }
