@@ -444,30 +444,37 @@ int main(void) {
 
 	sortRightQuartetsTable();
 
-	struct rightQuartetsEntry *q;
+	struct rightQuartetsEntry *q, *tmp;
 	u8 currentIndex[4];
+	u8 startIndex[4];
 	memcpy(currentIndex, rightQuartetsTable -> index, 4*sizeof(*currentIndex));
+	memcpy(startIndex, rightQuartetsTable -> index, 4*sizeof(*startIndex));
 	int counter = 0;
 
-	for (q = rightQuartetsTable; q != NULL; q = q -> hh.next) {
-		// controllo se l'indice è uguale a quello salvato
-		if (compareArray(q -> index, currentIndex, 4)) {
-			// l'indice è uguale, quindi incremento il counter
+	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+		if (compareArray(q -> index, currentIndex, 4)) {			// Found a collision
 			counter++;
-			// se il counter arriva a 3, ho una collisione che mi interessa
-			if (counter == 3) {
+			if (counter == 3) {										// Found a 3-collision
 				printf("3-collision found!\n");
-				printHex("current", currentIndex, 4);
-				printHex("index\t", q -> index, 4);
+				printHex("Right quartet index", q -> index, 4);
 			}
-		} else {
-			// l'indice di adesso è diverso da quello salvato:
-			// porto il counter ad 1
+		} else 														// Didn't find a collision: delete the elements with no sufficient collisions
+			if (counter < 3) {
+				while (counter > 0) {				
+					deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+					counter--;
+				}
+			}
 			counter = 1;
-			// cambio il current index
-			memcpy(currentIndex, q -> index, 4*sizeof(*currentIndex));
+			memcpy(currentIndex, q -> index, 4 * sizeof(*currentIndex));
 		}
 	}
+
+	// TODO!!! Trovare un modo migliore per rimuovere l'ultimo elemento se non ha una 3-collisione
+	deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+
+	printRightQuartetsEntries();
+	printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
