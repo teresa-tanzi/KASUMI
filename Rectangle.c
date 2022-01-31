@@ -92,7 +92,7 @@ struct hashEntry {
 
 struct hashEntry *hashTable = NULL;
 
-void addEntry(u8 index[], u8 Pa[], u8 Pb[]) {dd
+void addEntry(u8 index[], u8 Pa[], u8 Pb[]) {
 	struct hashEntry *h;
 	//struct hashValue *v;
 
