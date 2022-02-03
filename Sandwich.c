@@ -224,6 +224,16 @@ int main(void) {
 	int exp = 24;
 	int nPlaintext = pow(2, exp);       // should be pow(2, 24)
 
+	//int realRightQuartets = 0;
+	//int rightQuartets = 0;
+
+	//int nRightQuartets[30];
+	//for (int i = 0; i < 30; i++) {
+	//	nRightQuartets[i] = 0;
+	//}
+
+	//for (int w = 0; w < 1000; w++) {
+
 	// Hardcoded key Ka
 	Ka = (u8 [16]) {
 		0x99, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
@@ -436,7 +446,7 @@ int main(void) {
 	deleteAllDataCollectionEntries();
 
 	/*-------------------------------------------------------------------------------------------
-	 *		TODO apply Step 3 only to bins which contain at least three quartets.
+	 *		apply Step 3 only to bins which contain at least three quartets.
 	 *-------------------------------------------------------------------------------------------*/
 
 	printf("PHASE 2: IDENTIFIING RIGHT QUARTETS\n");
@@ -452,13 +462,17 @@ int main(void) {
 	int counter = 0;
 
 	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
-		if (compareArray(q -> index, currentIndex, 4)) {			// Found a collision
+		if (compareArray(q -> index, currentIndex, 4)) {
+			// Found a collision
 			counter++;
-			if (counter == 3) {										// Found a 3-collision
+			/*
+			if (counter == 3) {										
 				printf("3-collision found!\n");
 				printHex("Right quartet index", q -> index, 4);
 			}
-		} else 														// Didn't find a collision: delete the elements with no sufficient collisions
+			*/
+		} else 	{
+			// Didn't find a collision: delete the elements with no sufficient collisions
 			if (counter < 3) {
 				while (counter > 0) {				
 					deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
@@ -470,11 +484,99 @@ int main(void) {
 		}
 	}
 
-	// TODO!!! Trovare un modo migliore per rimuovere l'ultimo elemento se non ha una 3-collisione
-	deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+	// Delete the last quartet if not in a 3-collision
+	if (counter < 3) {
+		deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+	}
 
-	printRightQuartetsEntries();
+	//printRightQuartetsEntries();
 	printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
+
+	//nRightQuartets[HASH_COUNT(rightQuartetsTable)]++;
+	//rightQuartets += HASH_COUNT(rightQuartetsTable);
+	
+	//u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
+
+	//HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+	//	if (!compareArray(q -> index, rightIndex, 4)) {
+	//		deleteRightQuartetsEntry(q);
+	//	}
+	//}
+
+	//realRightQuartets += HASH_COUNT(rightQuartetsTable);
+
+	// Free the memory used for the first hash table: the data we need now on are on the new hash table
+	//deleteAllRightQuartetsEntries();
+	//}
+
+	//for (int i = 0; i < 30; i++) {
+	//	printf("Number of right quartets: \t%d. \tFound: \t%d\n", i, nRightQuartets[i]);
+	//}
+
+	//printf("Right quartets found: \t%d, of which are real: \t%d\n", rightQuartets, realRightQuartets);
+
+	/*-------------------------------------------------------------------------------------------
+	 * 3. Analyzing Right Quartets: (TODO)
+	 *-------------------------------------------------------------------------------------------*/
+
+	u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
+	u8 diffAC[8], diffBD[8];
+	//u8 diffAB[8], diffCD[8];
+	//u8 Ca[8], Cb[8], Cc[8], Cd[8];
+
+	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+		if (compareArray(q -> index, rightIndex, 4)) {
+			for (int i = 1; i < 8; i++) {
+				Ca[i] = (q -> CaCbCcCd)[i];
+				Cb[i] = (q -> CaCbCcCd)[i + 8];
+				Cc[i] = (q -> CaCbCcCd)[i + 16];
+				Cd[i] = (q -> CaCbCcCd)[i + 24];
+			}
+
+			for (int i = 1; i < 8; i++) {
+				diffAC[i] = Ca[i] ^ Cc[i];
+				diffBD[i] = Cb[i] ^ Cd[i];
+				//diffAB[i] = Ca[i] ^ Cb[i];
+				//diffCD[i] = Cc[i] ^ Cd[i];
+			}
+
+			printHex("Ca XOR Cc", diffAC, 8);				
+			printHex("Cb XOR Cd", diffBD, 8);	
+			//printHex("Ca XOR Cb", diffAB, 8);				
+			//printHex("Cc XOR Cd", diffCD, 8);	
+		}
+	}
+
+	/*-------------------------------------------------------------------------------------------
+	 *	(a) For each remaining quartet (C_a, C_b, C_c, C_d), guess the 32-bit value of
+	 *		KO_8,1 and KI_8,1 
+	 *-------------------------------------------------------------------------------------------*/
+
+	/*-------------------------------------------------------------------------------------------
+	 *		For the two pairs (C_a, C_c) and (C_b, C_d) use the value of the guessed key 
+	 *		to compute the input and output diﬀerences of the OR operation in the last 
+	 *		round of both pairs. For each bit of this 16-bit OR operation of F L8, 
+	 *		the possible values of the corresponding bit of KL 8,2 are given
+	 *-------------------------------------------------------------------------------------------*/
+
+	/*-------------------------------------------------------------------------------------------
+	 *		Since all the right quartets suggest the same key, all the wrong keys are discarded
+	 * 		and the attacker obtains the correct value of (KO_8,1, KI_8,1, KL_8,2)
+	 *-------------------------------------------------------------------------------------------*/
+
+	/*-------------------------------------------------------------------------------------------
+	 *	(b) Guess the 32-bit value of KO_8,3 and KI_8,3
+	 *-------------------------------------------------------------------------------------------*/
+
+	/*-------------------------------------------------------------------------------------------
+	 *		compute the input and output diﬀerences of the AND operation in both pairs
+	 		of each quartet. For each bit of the 16-bit AND operation of F L8, 
+	 		the possible values of the corresponding bit of KL_8,1 are given
+	 *-------------------------------------------------------------------------------------------*/
+
+	/*-------------------------------------------------------------------------------------------
+	 *		the attacker obtains the correct value of (KO_8,3, KI_8,3, KL_8,1)
+	 *-------------------------------------------------------------------------------------------*/
 
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
