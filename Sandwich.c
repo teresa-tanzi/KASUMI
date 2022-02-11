@@ -53,7 +53,7 @@ static u8 *Ka;
 static u8 Kb[16], Kc[16], Kd[16];
 
 /*-------------------------------------------------------------------------------------------
- * Let ΔK_ab = (0, 0, 8000_x , 0, 0, 0, 0, 0) and ΔK_ac = (0, 0, 0, 0, 0, 0, 8000_x , 0), and
+ * Let ΔK_ab = (0, 0, 8000_x, 0, 0, 0, 0, 0) and ΔK_ac = (0, 0, 0, 0, 0, 0, 8000_x , 0), and
  * let K_a , K_b = K_a xor ΔK_ab , K_c = K_a xor ΔK_ac , and K_d = K_c xor ΔK_ab be the
  * unknown related keys we wish to retrieve.
  *-------------------------------------------------------------------------------------------*/
@@ -216,6 +216,80 @@ void deleteAllRightQuartetsEntries() {
     }
 }
 
+/*------------------------------------------ FI --------------------------------------------*/
+
+static u16 FI(u16 in, u16 subkey) {
+	u16 nine, seven;
+
+	static u16 S7[] = {
+		54, 50, 62, 56, 22, 34, 94, 96, 38,  6, 63, 93,  2, 18,123, 33,
+		55,113, 39,114, 21, 67, 65, 12, 47, 73, 46, 27, 25,111,124, 81,
+		53,  9,121, 79, 52, 60, 58, 48,101,127, 40,120,104, 70, 71, 43,
+		20,122, 72, 61, 23,109, 13,100, 77,  1, 16,  7, 82, 10,105, 98,
+		117,116, 76, 11, 89,106, 0,125,118, 99, 86, 69, 30, 57,126, 87,
+		112, 51, 17,  5, 95, 14, 90, 84, 91, 8, 35,103, 32, 97, 28, 66,
+		102, 31, 26, 45, 75, 4, 85, 92, 37, 74, 80, 49, 68, 29,115, 44,
+		64,107,108, 24,110, 83, 36, 78, 42, 19, 15, 41, 88,119, 59,  3};
+	static u16 S9[] = {
+		167,239,161,379,391,334,  9,338, 38,226, 48,358,452,385, 90,397,
+		183,253,147,331,415,340, 51,362,306,500,262, 82,216,159,356,177,
+		175,241,489, 37,206, 17,  0,333, 44,254,378, 58,143,220, 81,400,
+		 95,  3,315,245, 54,235,218,405,472,264,172,494,371,290,399, 76,
+		165,197,395,121,257,480,423,212,240, 28,462,176,406,507,288,223,
+		501,407,249,265, 89,186,221,428,164, 74,440,196,458,421,350,163,
+		232,158,134,354, 13,250,491,142,191, 69,193,425,152,227,366,135,
+		344,300,276,242,437,320,113,278, 11,243, 87,317, 36, 93,496, 27,
+		487,446,482, 41, 68,156,457,131,326,403,339, 20, 39,115,442,124,
+		475,384,508, 53,112,170,479,151,126,169, 73,268,279,321,168,364,
+		363,292, 46,499,393,327,324, 24,456,267,157,460,488,426,309,229,
+		439,506,208,271,349,401,434,236, 16,209,359, 52, 56,120,199,277,
+		465,416,252,287,246,  6, 83,305,420,345,153,502, 65, 61,244,282,
+		173,222,418, 67,386,368,261,101,476,291,195,430, 49, 79,166,330,
+		280,383,373,128,382,408,155,495,367,388,274,107,459,417, 62,454,
+		132,225,203,316,234, 14,301, 91,503,286,424,211,347,307,140,374,
+		 35,103,125,427, 19,214,453,146,498,314,444,230,256,329,198,285,
+		 50,116, 78,410, 10,205,510,171,231, 45,139,467, 29, 86,505, 32,
+		 72, 26,342,150,313,490,431,238,411,325,149,473, 40,119,174,355,
+		185,233,389, 71,448,273,372, 55,110,178,322, 12,469,392,369,190,
+		  1,109,375,137,181, 88, 75,308,260,484, 98,272,370,275,412,111,
+		336,318,  4,504,492,259,304, 77,337,435, 21,357,303,332,483, 18,
+		 47, 85, 25,497,474,289,100,269,296,478,270,106, 31,104,433, 84,
+		414,486,394, 96, 99,154,511,148,413,361,409,255,162,215,302,201,
+		266,351,343,144,441,365,108,298,251, 34,182,509,138,210,335,133,
+		311,352,328,141,396,346,123,319,450,281,429,228,443,481, 92,404,
+		485,422,248,297, 23,213,130,466, 22,217,283, 70,294,360,419,127,
+		312,377,  7,468,194,  2,117,295,463,258,224,447,247,187, 80,398,
+		284,353,105,390,299,471,470,184, 57,200,348, 63,204,188, 33,451,
+		 97, 30,310,219, 94,160,129,493, 64,179,263,102,189,207,114,402,
+		438,477,387,122,192, 42,381,  5,145,118,180,449,293,323,136,380,
+		 43, 66, 60,455,341,445,202,432,  8,237, 15,376,436,464, 59,461};
+
+	/* The sixteen bit input is split into two unequal halves, 	*
+	 * nine bits and seven bits - as is the subkey			   	*/
+
+	nine = (u16)(in>>7);		
+	seven = (u16)(in&0x7F);		
+
+	/* Now run the various operations */
+
+	nine = (u16)(S9[nine] ^ seven);				
+	seven = (u16)(S7[seven] ^ (nine & 0x7F));
+
+	seven ^= (subkey>>9);		
+	nine ^= (subkey&0x1FF);		
+
+	nine = (u16)(S9[nine] ^ seven);
+	seven = (u16)(S7[seven] ^ (nine & 0x7F));
+
+	in = (u16)((seven<<9) + nine);
+
+	return(in);
+}
+
+u16 rightRotate(u16 n, unsigned int d) {
+    return (n >> d) | (n << (16 - d));
+}
+
 /*--------------------------------------- SANDWICH -----------------------------------------*/
 
 int main(void) {
@@ -311,7 +385,7 @@ int main(void) {
 		//printHex("Cb", Cb, 8);
 
 		/*-------------------------------------------------------------------------------------------
-		 *      Store the pairs (C_a , C_b ) in a hash table indexed by the
+		 *      Store the pairs (C_a , C_b) in a hash table indexed by the
 		 *      32-bit value C_b^R (i.e., the right half of C_b ).
 		 *-------------------------------------------------------------------------------------------*/
 
@@ -332,7 +406,7 @@ int main(void) {
 	printf("Data collection hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, dataCollectionTable)/1000000000.0);
 
 	/*-------------------------------------------------------------------------------------------
-	 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x ),
+	 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x),
 	 *		where A is the same constant as before, and Y_c assumes 2^24 arbitrary dif-
 	 *		ferent values. 
 	 *-------------------------------------------------------------------------------------------*/
@@ -388,7 +462,7 @@ int main(void) {
 
 		/*-------------------------------------------------------------------------------------------
 		 *      Then, access the hash table in the entry
-		 *      corresponding to the value C_d^R ⊕ 00100000_x , and for each pair (C_a, C_b)
+		 *      corresponding to the value C_d^R xor 00100000_x , and for each pair (C_a, C_b)
 		 *      found in this entry, apply Step 2 on the quartet (C_a, C_b, C_c, C_d).
 		 *-------------------------------------------------------------------------------------------*/
 
@@ -519,6 +593,12 @@ int main(void) {
 	 * 3. Analyzing Right Quartets: (TODO)
 	 *-------------------------------------------------------------------------------------------*/
 
+	if (HASH_COUNT(rightQuartetsTable) == 0) {
+		printf("No right quartet found, can't proceed with the attack.\n");
+		exit(0);
+	}
+
+	/*
 	u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
 	u8 diffAC[8], diffBD[8];
 	//u8 diffAB[8], diffCD[8];
@@ -546,18 +626,83 @@ int main(void) {
 			//printHex("Cc XOR Cd", diffCD, 8);	
 		}
 	}
+	*/
 
 	/*-------------------------------------------------------------------------------------------
 	 *	(a) For each remaining quartet (C_a, C_b, C_c, C_d), guess the 32-bit value of
 	 *		KO_8,1 and KI_8,1 
 	 *-------------------------------------------------------------------------------------------*/
 
-	/*-------------------------------------------------------------------------------------------
-	 *		For the two pairs (C_a, C_c) and (C_b, C_d) use the value of the guessed key 
-	 *		to compute the input and output diﬀerences of the OR operation in the last 
-	 *		round of both pairs. For each bit of this 16-bit OR operation of F L8, 
-	 *		the possible values of the corresponding bit of KL 8,2 are given
-	 *-------------------------------------------------------------------------------------------*/
+	printf("PHASE 3: ANALYZING RIGHT QUARTETS\n");
+
+	int cont = 1;
+
+	u16 KO81 = 0x0000;
+	u16 KI81 = 0x0000;
+	u16 Xac, Yac, Xbd, Ybd;
+	u16 X1aR, X1cR, X1bR, X1dR;
+
+	for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
+		printf("Analysing quartet n. %d...\n", cont);
+
+		for (int i = 1; i < 8; i++) {
+			Ca[i] = (q -> CaCbCcCd)[i];
+			Cb[i] = (q -> CaCbCcCd)[i + 8];
+			Cc[i] = (q -> CaCbCcCd)[i + 16];
+			Cd[i] = (q -> CaCbCcCd)[i + 24];
+		}
+
+		printHex("Ca", Ca, 8);				
+		printHex("Cb", Cb, 8);
+		printHex("Cc", Cc, 8);				
+		printHex("Cd", Cd, 8);
+
+		/*-------------------------------------------------------------------------------------------
+		 *		For the two pairs (C_a, C_c) and (C_b, C_d) use the value of the guessed key 
+		 *		to compute the input and output diﬀerences of the OR operation in the last 
+		 *		round of both pairs. For each bit of this 16-bit OR operation of F L8, 
+		 *		the possible values of the corresponding bit of KL 8,2 are given
+		 *-------------------------------------------------------------------------------------------*/
+
+		printf("Guessing the keys KO81 and KO82...\n");
+
+		printf("KO81:\t%04x\n", KO81);
+		printf("KI81:\t%04x\n", KI81);
+
+		printf("Ca^LL:\t%04x\n", (u16)(Ca[0]<<8)+(Ca[1]));	// Ca^LL
+		printf("Ca^LR:\t%04x\n", (u16)(Ca[2]<<8)+(Ca[3]));	// Ca^LR
+		printf("Ca^RL:\t%04x\n", (u16)(Ca[4]<<8)+(Ca[5]));	// Ca^RL
+		printf("Ca^RR:\t%04x\n", (u16)(Ca[6]<<8)+(Ca[7]));	// Ca^RR
+
+		printf("Cc^LL:\t%04x\n", (u16)(Cc[0]<<8)+(Cc[1]));	// Cc^LL
+		printf("Cc^LR:\t%04x\n", (u16)(Cc[2]<<8)+(Cc[3]));	// Cc^LR
+		printf("Cc^RL:\t%04x\n", (u16)(Cc[4]<<8)+(Cc[5]));	// Cc^RL
+		printf("Cc^RR:\t%04x\n", (u16)(Cc[6]<<8)+(Cc[7]));	// Cc^RR
+
+		Xac = ((u16)(Ca[2]<<8)+(Ca[3])) ^ ((u16)(Cc[2]<<8)+(Cc[3]));	// Ca^LR ^ Cc^LR
+		Xbd = ((u16)(Cb[2]<<8)+(Cb[3])) ^ ((u16)(Cd[2]<<8)+(Cd[3]));	// Cb^LR ^ Cd^LR
+		printf("Xac:\t%04x\n", Xac);
+		printf("Xbd:\t%04x\n", Xbd);
+
+		X1aR = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81) ^ ((u16)(Ca[6]<<8)+(Ca[7]));	// FI81( Ca^RL ^ KO81, KI81 ) ^ Ca^RR
+		X1cR = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81) ^ ((u16)(Cc[6]<<8)+(Cc[7]));	// FI81( Cc^RL ^ KO81, KI81 ) ^ Cc^RR
+		X1bR = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81) ^ ((u16)(Cb[6]<<8)+(Cb[7]));	// FI81( Cb^RL ^ KO81, KI81 ) ^ Cb^RR
+		X1dR = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81) ^ ((u16)(Cd[6]<<8)+(Cd[7]));	// FI81( Cd^RL ^ KO81, KI81 ) ^ Cd^RR
+		printf("X1aR:\t%04x\n", X1aR);
+		printf("X1cR:\t%04x\n", X1cR);
+		printf("X1bR:\t%04x\n", X1bR);
+		printf("X1dR:\t%04x\n", X1dR);
+
+		Yac = rightRotate(((u16)(Ca[0]<<8)+(Ca[1])) ^ ((u16)(Cc[0]<<8)+(Cc[1])) ^ X1aR ^ X1cR, 1);	// ( Ca^LL ^ Cc^LL ^ X1a^R ^ X1c^R ) >>> 1
+		Ybd = rightRotate(((u16)(Cb[0]<<8)+(Cd[1])) ^ ((u16)(Cb[0]<<8)+(Cd[1])) ^ X1bR ^ X1dR, 1);	// ( Cb^LL ^ Cd^LL ^ X1b^R ^ X1d^R ) >>> 1
+		printf("Yac:\t%04x\n", Yac);
+		printf("Ybd:\t%04x\n", Ybd);
+
+		cont++;
+		break;
+	}
+
+	
 
 	/*-------------------------------------------------------------------------------------------
 	 *		Since all the right quartets suggest the same key, all the wrong keys are discarded
