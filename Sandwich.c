@@ -12,6 +12,7 @@
 #include <math.h>          	// pow()
 #include <sys/resource.h>
 #include "uthash.h"			// https://troydhanson.github.io/uthash/
+#include "set.h"			// https://github.com/barrust/set
 #include "Kasumi.h"
 
 
@@ -216,7 +217,9 @@ void deleteAllRightQuartetsEntries() {
     }
 }
 
-/*------------------------------------------ FI --------------------------------------------*/
+/*----------------------------------------- KL82 -------------------------------------------*/
+
+/*-------------------------------------- FI Function ---------------------------------------*/
 
 static u16 FI(u16 in, u16 subkey) {
 	u16 nine, seven;
@@ -290,13 +293,12 @@ u16 rightRotate(u16 n, unsigned int d) {
     return (n >> d) | (n << (16 - d));
 }
 
-/*------------------------------------- LOOKUP TABLE ---------------------------------------*/
+/*------------------------------------- Lookup Table ---------------------------------------*/
 
 /* 	- 0, 1 	: the guessed bit for KL_8,2 is 0/1 			*
  * 	- 2 	: the guessed bit can be both 0 and 1 			*
  *	- 3 	: there is not a possible guessing for the key 	*/
 
-/*
 static short OR[] = 
 {
   2, 3, 1, 0,
@@ -304,7 +306,6 @@ static short OR[] =
   1, 3, 1, 3,
   0, 3, 3, 0
 };
-*/
 
 /*
 static short AND[] = 
@@ -315,6 +316,201 @@ static short AND[] =
   1, 3, 3, 1
 };
 */
+
+/*------------------------------------- Dynamic Array --------------------------------------*/
+// https://stackoverflow.com/questions/3536153/c-dynamically-growing-array
+
+typedef struct {
+	int *array;
+	size_t used;
+	size_t size;
+} Array;
+
+void initArray(Array *a, size_t initialSize) {
+	a -> array = malloc(initialSize * sizeof(int));
+	a -> used = 0;
+	a -> size = initialSize;
+}
+
+void insertArray(Array *a, int element) {
+	// a->used is the number of used entries, because a->array[a->used++] updates a->used only *after* the array has been accessed.
+	// Therefore a->used can go up to a->size 
+ 	if (a -> used == a -> size) {
+    	a -> size *= 2;
+    	a -> array = realloc(a -> array, a -> size * sizeof(int));
+  	}
+  	a -> array[a -> used++] = element;
+}
+
+void freeArray(Array *a) {
+  	free(a -> array);
+  	a -> array = NULL;
+  	a -> used = a -> size = 0;
+}
+
+/*--------------------------------------- Find KL82 ----------------------------------------*/
+
+Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
+
+    // Finding input and output differences of the OR operator for bot the coupples of texts
+
+    //printf("KO81:\t%04x\n", KO81);
+	//printf("KI81:\t%04x\n", KI81);
+
+	//printf("Ca^LL:\t%04x\n", (u16)(Ca[0]<<8)+(Ca[1]));	// Ca^LL
+	//printf("Ca^LR:\t%04x\n", (u16)(Ca[2]<<8)+(Ca[3]));	// Ca^LR
+	//printf("Ca^RL:\t%04x\n", (u16)(Ca[4]<<8)+(Ca[5]));	// Ca^RL
+	//printf("Ca^RR:\t%04x\n", (u16)(Ca[6]<<8)+(Ca[7]));	// Ca^RR
+
+	//printf("Cc^LL:\t%04x\n", (u16)(Cc[0]<<8)+(Cc[1]));	// Cc^LL
+	//printf("Cc^LR:\t%04x\n", (u16)(Cc[2]<<8)+(Cc[3]));	// Cc^LR
+	//printf("Cc^RL:\t%04x\n", (u16)(Cc[4]<<8)+(Cc[5]));	// Cc^RL
+	//printf("Cc^RR:\t%04x\n", (u16)(Cc[6]<<8)+(Cc[7]));	// Cc^RR
+
+	u16 Xac = ((u16)(Ca[2]<<8)+(Ca[3])) ^ ((u16)(Cc[2]<<8)+(Cc[3]));	// Ca^LR ^ Cc^LR
+	u16 Xbd = ((u16)(Cb[2]<<8)+(Cb[3])) ^ ((u16)(Cd[2]<<8)+(Cd[3]));	// Cb^LR ^ Cd^LR
+
+	//printf("Xac:\t%04x\n", Xac);
+	//printf("Xbd:\t%04x\n", Xbd);
+
+	u16 X1aR = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81) ^ ((u16)(Ca[6]<<8)+(Ca[7]));	// FI81( Ca^RL ^ KO81, KI81 ) ^ Ca^RR
+	u16 X1cR = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81) ^ ((u16)(Cc[6]<<8)+(Cc[7]));	// FI81( Cc^RL ^ KO81, KI81 ) ^ Cc^RR
+	u16 X1bR = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81) ^ ((u16)(Cb[6]<<8)+(Cb[7]));	// FI81( Cb^RL ^ KO81, KI81 ) ^ Cb^RR
+	u16 X1dR = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81) ^ ((u16)(Cd[6]<<8)+(Cd[7]));	// FI81( Cd^RL ^ KO81, KI81 ) ^ Cd^RR
+
+	//printf("X1aR:\t%04x\n", X1aR);
+	//printf("X1cR:\t%04x\n", X1cR);
+	//printf("X1bR:\t%04x\n", X1bR);
+	//printf("X1dR:\t%04x\n", X1dR);
+
+	u16 Yac = rightRotate(((u16)(Ca[0]<<8)+(Ca[1])) ^ ((u16)(Cc[0]<<8)+(Cc[1])) ^ X1aR ^ X1cR, 1);	// ( Ca^LL ^ Cc^LL ^ X1a^R ^ X1c^R ) >>> 1
+	u16 Ybd = rightRotate(((u16)(Cb[0]<<8)+(Cd[1])) ^ ((u16)(Cb[0]<<8)+(Cd[1])) ^ X1bR ^ X1dR, 1);	// ( Cb^LL ^ Cd^LL ^ X1b^R ^ X1d^R ) >>> 1
+
+	//printf("Yac:\t%04x\n", Yac);
+	//printf("Ybd:\t%04x\n", Ybd);
+
+	// OLD: passa per le stringhe, fa delle cose orribili, ma sono sicura che sia corretta
+	/*
+	char KL82[17];
+	
+	// For each bit in (Xac, Yac, Xbd, Ybd) find the corresponding value of the key KL82 through the lookup table
+
+	for (int p = 0; p < 16; p++) {
+		int i = 0;
+		int j = 0;
+		int b;
+
+	    if (Xac & 1) i += 2;	// Current bit is set to 1
+	    if (Yac & 1) i += 1;
+	    if (Xbd & 1) j += 2;
+	    if (Ybd & 1) j += 1;
+
+	    b = OR[4*i + j];
+
+		if (b == 3) KL82[p] = '3';
+		else if (b == 2) KL82[p] = '2';
+		else if (b == 1) KL82[p] = '1';
+		else KL82[p] = '0';
+				    
+		Xac >>= 1;
+		Yac >>= 1;
+		Xbd >>= 1;
+		Ybd >>= 1;
+	}
+
+	KL82[16] = '\0';
+
+	Array a;	// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
+	initArray(&a, 4);
+
+	if (strchr(KL82, '3') == NULL) {			// else: we found a contraddiction: KO81, KI82 should be discarded
+		//printf("Found KL81: \t%s\n", KL82);
+							
+		int n = 0;
+		insertArray(&a, n);
+
+		//printf("KL82[p]:\t");
+	
+		for (int p = 0; p < 16; p++) {
+			//printf("%c", KL82[p]);
+			if (KL82[p] == '1') {
+				for (int i = 0; i < a.used; i++) {
+					a.array[i] = a.array[i] + pow(2, p);
+				}
+			} else if (KL82[p] == '2') {
+				int nKeys = a.used;
+				for (int i = 0; i < nKeys; i++) {
+					int m = a.array[i];			// n -> KL82[p] = 0
+					m = m + pow(2, p);			// m -> KL82[p] = 1
+					insertArray(&a, m);
+				}
+			}
+		}
+		//printf("\n");
+	}
+	*/
+
+	Array a;					// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
+	initArray(&a, 4);	
+	int KL82 = 0;
+	insertArray(&a, KL82);
+
+	u16 Xaccpy = Xac;
+	u16 Xbdcpy = Xbd;
+	u16 Yaccpy = Yac;
+	u16 Ybdcpy = Ybd;
+
+	// For each bit in (Xac, Yac, Xbd, Ybd) find the corresponding value of the key KL82 through the lookup table
+
+	for (int p = 0; p < 16; p++) {
+		int i = 0;
+		int j = 0;
+		int b;
+
+	    if (Xac & 1) i += 2;	// Current bit is set to 1
+	    if (Yac & 1) i += 1;
+	    if (Xbd & 1) j += 2;
+	    if (Ybd & 1) j += 1;
+
+	    b = OR[4*i + j];
+
+	    if (b == 3) {
+	    	freeArray(&a);
+	    	break;
+	    } else if (b == 1) {
+	    	for (int i = 0; i < a.used; i++) {
+				a.array[i] = a.array[i] + pow(2, p);
+			}
+	    } else if (b == 2) {
+	    	int nKeys = a.used;
+			for (int i = 0; i < nKeys; i++) {
+				int m = a.array[i];			// n -> KL82[p] = 0
+				m = m + pow(2, p);			// m -> KL82[p] = 1
+				insertArray(&a, m);
+			}
+	    }
+				    
+		Xac >>= 1;
+		Yac >>= 1;
+		Xbd >>= 1;
+		Ybd >>= 1;
+	}
+
+	if (a.used > 0) {
+		printf("IN FUNCTION\n");
+		printf("Xac:\t%04x\n", Xaccpy);
+		printf("Yac:\t%04x\n", Yaccpy);
+		printf("Xbd:\t%04x\n", Xbdcpy);
+		printf("Ybd:\t%04x\n", Ybdcpy);
+
+		for (int i = 0; i < a.used; i++) {
+			printf("FL82:\t%04x\n", a.array[i]);
+		}
+		printf("\n");
+	}
+
+	return a;
+}
 
 /*--------------------------------------- SANDWICH -----------------------------------------*/
 
@@ -665,8 +861,6 @@ int main(void) {
 
 	u16 KO81 = 0x0000;
 	u16 KI81 = 0x0000;
-	u16 Xac, Yac, Xbd, Ybd;
-	u16 X1aR, X1cR, X1bR, X1dR;
 
 	for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
 		printf("Analysing quartet n. %d...\n", cont);
@@ -694,80 +888,25 @@ int main(void) {
 
 		z = 0;	// Initializing the progress bar
 
-		for (int i = 0; i <= 0xffff; i++) {
-			for (int j = 0; j <= 0xffff; j++) {
-				//printf("KO81:\t%04x\n", KO81);
-				//printf("KI81:\t%04x\n", KI81);
+		for (int ko = 0; ko <= 0x0fff; ko++) {
+			for (int ki = 0; ki <= 0x0fff; ki++) {
 
-				/*
-				printf("Ca^LL:\t%04x\n", (u16)(Ca[0]<<8)+(Ca[1]));	// Ca^LL
-				printf("Ca^LR:\t%04x\n", (u16)(Ca[2]<<8)+(Ca[3]));	// Ca^LR
-				printf("Ca^RL:\t%04x\n", (u16)(Ca[4]<<8)+(Ca[5]));	// Ca^RL
-				printf("Ca^RR:\t%04x\n", (u16)(Ca[6]<<8)+(Ca[7]));	// Ca^RR
+				//SimpleSet set;
+    			//set_init(&set);
 
-				printf("Cc^LL:\t%04x\n", (u16)(Cc[0]<<8)+(Cc[1]));	// Cc^LL
-				printf("Cc^LR:\t%04x\n", (u16)(Cc[2]<<8)+(Cc[3]));	// Cc^LR
-				printf("Cc^RL:\t%04x\n", (u16)(Cc[4]<<8)+(Cc[5]));	// Cc^RL
-				printf("Cc^RR:\t%04x\n", (u16)(Cc[6]<<8)+(Cc[7]));	// Cc^RR
-				*/
+    			Array a = findKL82(Ca, Cb, Cc, Cd, KO81, KI81);
 
-				Xac = ((u16)(Ca[2]<<8)+(Ca[3])) ^ ((u16)(Cc[2]<<8)+(Cc[3]));	// Ca^LR ^ Cc^LR
-				Xbd = ((u16)(Cb[2]<<8)+(Cb[3])) ^ ((u16)(Cd[2]<<8)+(Cd[3]));	// Cb^LR ^ Cd^LR
-				/*
-				printf("Xac:\t%04x\n", Xac);
-				printf("Xbd:\t%04x\n", Xbd);
-				*/
+    			if (a.used > 0) {
+    				printf("\n");
+    				printf("KO81:\t%04x\n", KO81);
+    				printf("KI81:\t%04x\n", KI81);
 
-				X1aR = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81) ^ ((u16)(Ca[6]<<8)+(Ca[7]));	// FI81( Ca^RL ^ KO81, KI81 ) ^ Ca^RR
-				X1cR = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81) ^ ((u16)(Cc[6]<<8)+(Cc[7]));	// FI81( Cc^RL ^ KO81, KI81 ) ^ Cc^RR
-				X1bR = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81) ^ ((u16)(Cb[6]<<8)+(Cb[7]));	// FI81( Cb^RL ^ KO81, KI81 ) ^ Cb^RR
-				X1dR = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81) ^ ((u16)(Cd[6]<<8)+(Cd[7]));	// FI81( Cd^RL ^ KO81, KI81 ) ^ Cd^RR
-				/*
-				printf("X1aR:\t%04x\n", X1aR);
-				printf("X1cR:\t%04x\n", X1cR);
-				printf("X1bR:\t%04x\n", X1bR);
-				printf("X1dR:\t%04x\n", X1dR);
-				*/
+    				for (int i = 0; i < a.used; i++) {
+						printf("KL82 %d:\t%04x\n", i, a.array[i]);
+					}
+    			}
 
-				Yac = rightRotate(((u16)(Ca[0]<<8)+(Ca[1])) ^ ((u16)(Cc[0]<<8)+(Cc[1])) ^ X1aR ^ X1cR, 1);	// ( Ca^LL ^ Cc^LL ^ X1a^R ^ X1c^R ) >>> 1
-				Ybd = rightRotate(((u16)(Cb[0]<<8)+(Cd[1])) ^ ((u16)(Cb[0]<<8)+(Cd[1])) ^ X1bR ^ X1dR, 1);	// ( Cb^LL ^ Cd^LL ^ X1b^R ^ X1d^R ) >>> 1
-				/*
-				printf("Yac:\t%04x\n", Yac);
-				printf("Ybd:\t%04x\n", Ybd);
-				*/
-
-				//printf("OR:\t");
-				while (Xac) {
-					int i = 0;
-					int j = 0;
-					//int b;
-
-				    if (Xac & 1) i += 2;	// Current bit is set to 1
-				    if (Yac & 1) i += 1;
-				    if (Xbd & 1) j += 2;
-				    if (Ybd & 1) j += 1;
-
-				    //b = OR[4*i + j];
-
-				    /*
-				    if (b == 3) {
-				    	printf("Inconsistency found.\n");
-				    	break;
-				    } else if (b == 2) {
-				    	printf("Duplicate the key.\n");
-				    } else {
-				    	printf("%d", b);
-				    }
-				    */
-
-				    //printf("%d", OR[4*i + j]);
-				    
-				    Xac >>= 1;
-					Yac >>= 1;
-					Xbd >>= 1;
-					Ybd >>= 1;
-				}
-				//printf("\n");
+    			freeArray(&a);
 
 				//if (KI81 < 0xffff) KI81++;
 				KI81++;
@@ -784,8 +923,8 @@ int main(void) {
 			}
 
 			//if (KO81 < 0xffff) {
-				KO81++;
-				KI81 = 0x0000;
+			KO81++;
+			KI81 = 0x0000;
 			//}
 		}
 		printf("\n");
