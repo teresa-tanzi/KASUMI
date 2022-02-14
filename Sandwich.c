@@ -217,7 +217,7 @@ void deleteAllRightQuartetsEntries() {
     }
 }
 
-/*----------------------------------------- KL82 -------------------------------------------*/
+/*-------------------------------------- KL82 / KL81 ---------------------------------------*/
 
 /*-------------------------------------- FI Function ---------------------------------------*/
 
@@ -389,90 +389,23 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 	//printf("Yac:\t%04x\n", Yac);
 	//printf("Ybd:\t%04x\n", Ybd);
 
-	// OLD: passa per le stringhe, fa delle cose orribili, ma sono sicura che sia corretta
-	/*
-	char KL82[17];
-	
-	// For each bit in (Xac, Yac, Xbd, Ybd) find the corresponding value of the key KL82 through the lookup table
-
-	for (int p = 0; p < 16; p++) {
-		int i = 0;
-		int j = 0;
-		int b;
-
-	    if (Xac & 1) i += 2;	// Current bit is set to 1
-	    if (Yac & 1) i += 1;
-	    if (Xbd & 1) j += 2;
-	    if (Ybd & 1) j += 1;
-
-	    b = OR[4*i + j];
-
-		if (b == 3) KL82[p] = '3';
-		else if (b == 2) KL82[p] = '2';
-		else if (b == 1) KL82[p] = '1';
-		else KL82[p] = '0';
-				    
-		Xac >>= 1;
-		Yac >>= 1;
-		Xbd >>= 1;
-		Ybd >>= 1;
-	}
-
-	KL82[16] = '\0';
-
-	Array a;	// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
-	initArray(&a, 4);
-
-	if (strchr(KL82, '3') == NULL) {			// else: we found a contraddiction: KO81, KI82 should be discarded
-		//printf("Found KL81: \t%s\n", KL82);
-							
-		int n = 0;
-		insertArray(&a, n);
-
-		//printf("KL82[p]:\t");
-	
-		for (int p = 0; p < 16; p++) {
-			//printf("%c", KL82[p]);
-			if (KL82[p] == '1') {
-				for (int i = 0; i < a.used; i++) {
-					a.array[i] = a.array[i] + pow(2, p);
-				}
-			} else if (KL82[p] == '2') {
-				int nKeys = a.used;
-				for (int i = 0; i < nKeys; i++) {
-					int m = a.array[i];			// n -> KL82[p] = 0
-					m = m + pow(2, p);			// m -> KL82[p] = 1
-					insertArray(&a, m);
-				}
-			}
-		}
-		//printf("\n");
-	}
-	*/
-
 	Array a;					// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
 	initArray(&a, 4);	
 	int KL82 = 0;
 	insertArray(&a, KL82);
 
-	u16 Xaccpy = Xac;
-	u16 Xbdcpy = Xbd;
-	u16 Yaccpy = Yac;
-	u16 Ybdcpy = Ybd;
-
 	// For each bit in (Xac, Yac, Xbd, Ybd) find the corresponding value of the key KL82 through the lookup table
 
 	for (int p = 0; p < 16; p++) {
 		int i = 0;
 		int j = 0;
-		int b;
 
 	    if (Xac & 1) i += 2;	// Current bit is set to 1
 	    if (Yac & 1) i += 1;
 	    if (Xbd & 1) j += 2;
 	    if (Ybd & 1) j += 1;
 
-	    b = OR[4*i + j];
+	    int b = OR[4*i + j];
 
 	    if (b == 3) {
 	    	freeArray(&a);
@@ -494,19 +427,6 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 		Yac >>= 1;
 		Xbd >>= 1;
 		Ybd >>= 1;
-	}
-
-	if (a.used > 0) {
-		printf("IN FUNCTION\n");
-		printf("Xac:\t%04x\n", Xaccpy);
-		printf("Yac:\t%04x\n", Yaccpy);
-		printf("Xbd:\t%04x\n", Xbdcpy);
-		printf("Ybd:\t%04x\n", Ybdcpy);
-
-		for (int i = 0; i < a.used; i++) {
-			printf("FL82:\t%04x\n", a.array[i]);
-		}
-		printf("\n");
 	}
 
 	return a;
@@ -904,6 +824,8 @@ int main(void) {
     				for (int i = 0; i < a.used; i++) {
 						printf("KL82 %d:\t%04x\n", i, a.array[i]);
 					}
+
+					// TODO: inserire (KO81, KI81, KL82) nell'insieme di possibili chiavi
     			}
 
     			freeArray(&a);
