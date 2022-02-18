@@ -12,7 +12,9 @@
 #include <math.h>          	// pow()
 #include <sys/resource.h>
 #include "uthash.h"			// https://troydhanson.github.io/uthash/
-#include "set.h"			// https://github.com/barrust/set
+//#include "set.h"			// https://github.com/barrust/set
+//#include "set.c"
+//#include "pblSet.c"	
 #include "Kasumi.h"
 
 
@@ -119,7 +121,7 @@ struct dataCollectionEntry *findDataCollectionEntry(u8 index[]) {
 	return h;
 }
 
-void printDataCollectionEntries() {
+void printDataCollectionEntries(void) {
 	struct dataCollectionEntry *h;
 
 	for(h = dataCollectionTable; h != NULL; h = (struct dataCollectionEntry*)(h -> hh.next)) {
@@ -129,7 +131,7 @@ void printDataCollectionEntries() {
 	}
 }
 
-void deleteAllDataCollectionEntries() {
+void deleteAllDataCollectionEntries(void) {
 	struct dataCollectionEntry *currentEntry, *tmp;
 
 	HASH_ITER(hh, dataCollectionTable, currentEntry, tmp) {
@@ -180,7 +182,7 @@ struct rightQuartetsEntry *findRightQuartetsEntry(u8 index[]) {
 	return h;
 }
 
-void printRightQuartetsEntries() {
+void printRightQuartetsEntries(void) {
 	struct rightQuartetsEntry *h;
 
 	for(h = rightQuartetsTable; h != NULL; h = (struct rightQuartetsEntry*)(h -> hh.next)) {
@@ -204,11 +206,11 @@ int indexSort(struct rightQuartetsEntry *a, struct rightQuartetsEntry *b) {
 	return 0;
 }
 
-void sortRightQuartetsTable() {
+void sortRightQuartetsTable(void) {
     HASH_SORT(rightQuartetsTable, indexSort);
 }
 
-void deleteAllRightQuartetsEntries() {
+void deleteAllRightQuartetsEntries(void) {
 	struct rightQuartetsEntry *currentEntry, *tmp;
 
 	HASH_ITER(hh, rightQuartetsTable, currentEntry, tmp) {
@@ -216,6 +218,113 @@ void deleteAllRightQuartetsEntries() {
     	free(currentEntry);             						/* free it */
     }
 }
+
+/*---------------------------------------- OR Set -------------------------------------------*/
+
+struct OREntry {
+	u16 index[3];       	// key:		(KO81, KI81, KL82)     				48 Byte  
+	UT_hash_handle hh;      // makes this structure hashable                56 Byte
+};
+
+struct OREntry *ORSet = NULL;
+
+struct OREntry *findOREntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OREntry *h;
+	u16 index[3] = {KO81, KI81, KL82};
+
+	unsigned keylen = (unsigned)sizeof((h)->index);  
+	HASH_FIND(hh, ORSet, index, keylen, h);         // h: output pointer
+
+	return h;
+}
+
+void addOREntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OREntry *h;
+
+	// As a set, we should avoid repetition of the key
+	if (!findOREntry(KO81, KI81, KL82)) {
+		h = malloc(sizeof(struct OREntry));
+
+		h -> index[0] = KO81;
+		h -> index[1] = KI81;
+		h -> index[2] = KL82;
+
+		unsigned keylen = (unsigned)sizeof((h)->index);  
+		HASH_ADD(hh, ORSet, index[0], keylen, h);
+	}
+}
+
+void printOREntries(void) {
+	struct OREntry *h;
+
+	for(h = ORSet; h != NULL; h = (struct OREntry*)(h -> hh.next)) {
+		printf("(KO81, KI81, KL82):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
+	}
+}
+
+void deleteAllOREntries(void) {
+	struct OREntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, ORSet, currentEntry, tmp) {
+    	HASH_DEL(ORSet, currentEntry);  			/* delete it (entries advances to next) */
+    	free(currentEntry);             						/* free it */
+    }
+}
+
+/*-------------------------------------- tmp OR Set -----------------------------------------*/
+
+/*
+struct tmpOREntry {
+	u16 index[3];       	// key:		(KO81, KI81, KL82)     							48 Byte  
+	UT_hash_handle hh;      // makes this structure hashable                56 Byte
+};
+*/
+
+struct OREntry *tmpORSet = NULL;
+
+struct OREntry *findTmpOREntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OREntry *h;
+	u16 index[3] = {KO81, KI81, KL82};
+
+	unsigned keylen = (unsigned)sizeof((h)->index);  
+	HASH_FIND(hh, tmpORSet, index, keylen, h);         // h: output pointer
+
+	return h;
+}
+
+void addTmpOREntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OREntry *h;
+
+	// As a set, we should avoid repetition of the key
+	if (!findTmpOREntry(KO81, KI81, KL82)) {
+		h = malloc(sizeof(struct OREntry));
+
+		h -> index[0] = KO81;
+		h -> index[1] = KI81;
+		h -> index[2] = KL82;
+
+		unsigned keylen = (unsigned)sizeof((h)->index);  
+		HASH_ADD(hh, tmpORSet, index[0], keylen, h);
+	}
+}
+
+void printTmpOREntries(void) {
+	struct OREntry *h;
+
+	for(h = tmpORSet; h != NULL; h = (struct OREntry*)(h -> hh.next)) {
+		printf("(KO81, KI81, KL82):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
+	}
+}
+
+void deleteAllTmpOREntries(void) {
+	struct OREntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, tmpORSet, currentEntry, tmp) {
+    	HASH_DEL(tmpORSet, currentEntry);  			/* delete it (entries advances to next) */
+    	free(currentEntry);             						/* free it */
+    }
+}
+
 
 /*-------------------------------------- KL82 / KL81 ---------------------------------------*/
 
@@ -373,21 +482,44 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 	//printf("Xac:\t%04x\n", Xac);
 	//printf("Xbd:\t%04x\n", Xbd);
 
+	/*
 	u16 X1aR = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81) ^ ((u16)(Ca[6]<<8)+(Ca[7]));	// FI81( Ca^RL ^ KO81, KI81 ) ^ Ca^RR
 	u16 X1cR = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81) ^ ((u16)(Cc[6]<<8)+(Cc[7]));	// FI81( Cc^RL ^ KO81, KI81 ) ^ Cc^RR
 	u16 X1bR = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81) ^ ((u16)(Cb[6]<<8)+(Cb[7]));	// FI81( Cb^RL ^ KO81, KI81 ) ^ Cb^RR
 	u16 X1dR = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81) ^ ((u16)(Cd[6]<<8)+(Cd[7]));	// FI81( Cd^RL ^ KO81, KI81 ) ^ Cd^RR
+	*/
 
 	//printf("X1aR:\t%04x\n", X1aR);
 	//printf("X1cR:\t%04x\n", X1cR);
 	//printf("X1bR:\t%04x\n", X1bR);
 	//printf("X1dR:\t%04x\n", X1dR);
 
+	/*
 	u16 Yac = rightRotate(((u16)(Ca[0]<<8)+(Ca[1])) ^ ((u16)(Cc[0]<<8)+(Cc[1])) ^ X1aR ^ X1cR, 1);	// ( Ca^LL ^ Cc^LL ^ X1a^R ^ X1c^R ) >>> 1
 	u16 Ybd = rightRotate(((u16)(Cb[0]<<8)+(Cd[1])) ^ ((u16)(Cb[0]<<8)+(Cd[1])) ^ X1bR ^ X1dR, 1);	// ( Cb^LL ^ Cd^LL ^ X1b^R ^ X1d^R ) >>> 1
+	*/
+
+	u16 Ya = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81);
+	u16 Yb = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81);
+	u16 Yc = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81);
+	u16 Yd = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81);
+
+	u16 Yac = rightRotate(Ya ^ Yc ^ (u16)((Ca[0]<<8)+(Ca[1])) ^ (u16)((Cc[0]<<8)+(Cc[1])), 1);
+	u16 Ybd = rightRotate(Yb ^ Yd ^ (u16)((Cb[0]<<8)+(Cb[1])) ^ (u16)((Cd[0]<<8)+(Cd[1])), 1);
 
 	//printf("Yac:\t%04x\n", Yac);
 	//printf("Ybd:\t%04x\n", Ybd);
+
+	/*
+	if (KO81 == 0x2013 && KI81 == 0x2310) {
+    	printf("KO81:\t%04x\n", KO81);
+    	printf("KI81:\t%04x\n", KI81);
+    	printf("Xac:\t%04x\n", Xac);
+		printf("Xbd:\t%04x\n", Xbd);
+    	printf("Yac:\t%04x\n", Yac);
+		printf("Ybd:\t%04x\n", Ybd);
+    }
+	*/
 
 	Array a;					// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
 	initArray(&a, 4);	
@@ -429,6 +561,18 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 		Ybd >>= 1;
 	}
 
+	/*
+	if (KO81 == 0x2013 && KI81 == 0x2310) {
+		if (a.used == 0) {
+			printf("No valid KL82 found.\n");
+		} else {
+	    	for (int i = 0; i < a.used; i++) {
+	    		printf("KL82:\t%04x\n", a.array[i]);
+	    	}
+	    }
+    }
+	*/
+
 	return a;
 }
 
@@ -458,10 +602,10 @@ int main(void) {
 
 	generateRelatedKeys(Ka);
 
-	//printHex("Ka", Ka, 16);
-	//printHex("Kb", Kb, 16);
-	//printHex("Kc", Kc, 16);
-	//printHex("Kd", Kd, 16);
+	printHex("Ka", Ka, 16);
+	printHex("Kb", Kb, 16);
+	printHex("Kc", Kc, 16);
+	printHex("Kd", Kd, 16);
 
 	/*-------------------------------------------------------------------------------------------
 	 * 1. Data Collection Phase:
@@ -639,6 +783,10 @@ int main(void) {
 				indexRQ[i] = indexRQ[i] ^ Cc[i];
 			}
 
+			//printHex("Cc", Cc, 8);
+			//printHex("Cd", Cd, 8);
+			//printHex("index", indexRQ, 4);
+
 			addRightQuartetsEntry(indexRQ, Ca, Cb, Cc, Cd);
 
 			//printHex("FOUND", h -> CaCb, 8);
@@ -705,8 +853,22 @@ int main(void) {
 		deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
 	}
 
-	//printRightQuartetsEntries();
+	printRightQuartetsEntries();
 	printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
+
+	/*
+	u8 Caa[] = { 0x02, 0x6a, 0x48, 0x7a, 0xff, 0xff, 0xff, 0xff };
+	u8 Cbb[] = { 0xaa, 0xdc, 0xb9, 0x90, 0x8b, 0xbd, 0xed, 0x83 };
+	u8 Ccc[] = { 0x81, 0x98, 0xd0, 0x86, 0xff, 0xef, 0xff, 0xff };
+	u8 Cdd[] = { 0x95, 0x75, 0xfa, 0x5f, 0x8b, 0xad, 0xed, 0x83 };
+
+	u16 KO811 = 0x2013;
+	u16 KI811 = 0x2310;
+
+	findKL82(Caa, Cbb, Ccc, Cdd, KO811, KI811);
+
+	exit(0);
+	*/
 
 	//nRightQuartets[HASH_COUNT(rightQuartetsTable)]++;
 	//rightQuartets += HASH_COUNT(rightQuartetsTable);
@@ -740,36 +902,6 @@ int main(void) {
 		exit(0);
 	}
 
-	/*
-	u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
-	u8 diffAC[8], diffBD[8];
-	//u8 diffAB[8], diffCD[8];
-	//u8 Ca[8], Cb[8], Cc[8], Cd[8];
-
-	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
-		if (compareArray(q -> index, rightIndex, 4)) {
-			for (int i = 1; i < 8; i++) {
-				Ca[i] = (q -> CaCbCcCd)[i];
-				Cb[i] = (q -> CaCbCcCd)[i + 8];
-				Cc[i] = (q -> CaCbCcCd)[i + 16];
-				Cd[i] = (q -> CaCbCcCd)[i + 24];
-			}
-
-			for (int i = 1; i < 8; i++) {
-				diffAC[i] = Ca[i] ^ Cc[i];
-				diffBD[i] = Cb[i] ^ Cd[i];
-				//diffAB[i] = Ca[i] ^ Cb[i];
-				//diffCD[i] = Cc[i] ^ Cd[i];
-			}
-
-			printHex("Ca XOR Cc", diffAC, 8);				
-			printHex("Cb XOR Cd", diffBD, 8);	
-			//printHex("Ca XOR Cb", diffAB, 8);				
-			//printHex("Cc XOR Cd", diffCD, 8);	
-		}
-	}
-	*/
-
 	/*-------------------------------------------------------------------------------------------
 	 *	(a) For each remaining quartet (C_a, C_b, C_c, C_d), guess the 32-bit value of
 	 *		KO_8,1 and KI_8,1 
@@ -778,20 +910,19 @@ int main(void) {
 	printf("PHASE 3: ANALYZING RIGHT QUARTETS\n");
 
 	int cont = 1;
-
-	u16 KO81 = 0x0000;
-	u16 KI81 = 0x0000;
+	u16 KO81, KI81;
 
 	for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
 		printf("Analysing quartet n. %d...\n", cont);
 
-		for (int i = 1; i < 8; i++) {
+		for (int i = 0; i < 8; i++) {
 			Ca[i] = (q -> CaCbCcCd)[i];
 			Cb[i] = (q -> CaCbCcCd)[i + 8];
 			Cc[i] = (q -> CaCbCcCd)[i + 16];
 			Cd[i] = (q -> CaCbCcCd)[i + 24];
 		}
 
+		printHex("index", q -> index, 4);
 		printHex("Ca", Ca, 8);				
 		printHex("Cb", Cb, 8);
 		printHex("Cc", Cc, 8);				
@@ -808,8 +939,16 @@ int main(void) {
 
 		z = 0;	// Initializing the progress bar
 
-		for (int ko = 0; ko <= 0x0fff; ko++) {
-			for (int ki = 0; ki <= 0x0fff; ki++) {
+		int nSuggestedKeys = 0;
+
+		KO81 = 0x0000;
+		KI81 = 0x0000;
+
+		for (int ko = 0; ko <= 0xffff; ko++) {
+
+			KI81 = 0x0000;
+			
+			for (int ki = 0; ki <= 0xffff; ki++) {
 
 				//SimpleSet set;
     			//set_init(&set);
@@ -817,13 +956,50 @@ int main(void) {
     			Array a = findKL82(Ca, Cb, Cc, Cd, KO81, KI81);
 
     			if (a.used > 0) {
-    				printf("\n");
-    				printf("KO81:\t%04x\n", KO81);
-    				printf("KI81:\t%04x\n", KI81);
+    				//printf("\n");
+    				//if (KO81 == 0x2013 && KI81 == 0x2310) {
+    				//	printf("KO81:\t%04x\n", KO81);
+    				//	printf("KI81:\t%04x\n", KI81);
+    				//}
 
     				for (int i = 0; i < a.used; i++) {
-						printf("KL82 %d:\t%04x\n", i, a.array[i]);
+						//printf("KL82 %d:\t%04x\n", i, a.array[i]);
+
+    					/*
+						u16 keys[3];
+						keys[0] = KO81;
+						keys[1] = KI81;
+						keys[2] = a.array[i];
+						*/
+
+    					if (cont == 1) {									// devo riempire il set di partenza
+    						addOREntry(KO81, KI81, a.array[i]);
+    					} else {											// devo riempire un altro set, dopo di che farò l'intersezione
+    						if (findOREntry(KO81, KI81, a.array[i])) {	
+    							printf("Inteseption found!\n");
+    							printf("KO81:\t%04x\n", KO81);
+    							printf("KI81:\t%04x\n", KI81);
+    							printf("KL82:\t%04x\n", a.array[i]);
+								//addTmpOREntry(KO81, KI81, a.array[i]);		// se la tripla è in ORSet, allora la aggiungo ad un nuovo set
+							}
+    					}
+
+    					/*
+    					if (KO81 == 0x2013 && KI81 == 0x2310) {
+	    					printf("KL82:\t%04x\n", a.array[i]);
+	    				}
+	    				*/
+    					
+						nSuggestedKeys++;
+
+						//printf("%s:\t", name);
+						/*
+						for (int i = 0; i < 3; i++)
+							printf("%04x ", keys[i]);
+						printf("\n");
+						*/
 					}
+					//printf("\n");
 
 					// TODO: inserire (KO81, KI81, KL82) nell'insieme di possibili chiavi
     			}
@@ -846,7 +1022,6 @@ int main(void) {
 
 			//if (KO81 < 0xffff) {
 			KO81++;
-			KI81 = 0x0000;
 			//}
 		}
 		printf("\n");
@@ -856,8 +1031,28 @@ int main(void) {
 		printf("%f\n", pow(2,32));
 		*/
 
+		printf("Suggested keys: \t%d\n", nSuggestedKeys);
+		printf("Keys in the set OR: \t%d\n", HASH_COUNT(ORSet));
+		printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpORSet));
+		//printOREntries();
+
+		/*
+		if (cont > 1) {
+			// assegno ad ORSet il nuovo set provvisorio
+			deleteAllOREntries();
+			ORSet = tmpORSet;
+	    	// libero il set provvisorio
+			deleteAllTmpOREntries();
+		}
+		*/
+
+		nSuggestedKeys = 0;
+
+		printf("Keys in the set OR: \t%d\n", HASH_COUNT(ORSet));
+		printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpORSet));
+
 		cont++;
-		break;
+		//break;
 	}
 
 	
