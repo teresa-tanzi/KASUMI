@@ -135,9 +135,9 @@ void deleteAllDataCollectionEntries(void) {
 	struct dataCollectionEntry *currentEntry, *tmp;
 
 	HASH_ITER(hh, dataCollectionTable, currentEntry, tmp) {
-    	HASH_DEL(dataCollectionTable, currentEntry);  			/* delete it (entries advances to next) */
-    	free(currentEntry);             						/* free it */
-    }
+		HASH_DEL(dataCollectionTable, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
 }
 
 /*------------------------------------ Right Quartets ---------------------------------------*/
@@ -207,124 +207,225 @@ int indexSort(struct rightQuartetsEntry *a, struct rightQuartetsEntry *b) {
 }
 
 void sortRightQuartetsTable(void) {
-    HASH_SORT(rightQuartetsTable, indexSort);
+	HASH_SORT(rightQuartetsTable, indexSort);
 }
 
 void deleteAllRightQuartetsEntries(void) {
 	struct rightQuartetsEntry *currentEntry, *tmp;
 
 	HASH_ITER(hh, rightQuartetsTable, currentEntry, tmp) {
-    	HASH_DEL(rightQuartetsTable, currentEntry);  			/* delete it (entries advances to next) */
-    	free(currentEntry);             						/* free it */
-    }
+		HASH_DEL(rightQuartetsTable, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
 }
 
 /*---------------------------------------- OR Set -------------------------------------------*/
 
-struct OREntry {
+struct OrEntry {
 	u16 index[3];       	// key:		(KO81, KI81, KL82)     				48 Byte  
 	UT_hash_handle hh;      // makes this structure hashable                56 Byte
 };
 
-struct OREntry *ORSet = NULL;
+struct OrEntry *OrSet = NULL;
 
-struct OREntry *findOREntry(u16 KO81, u16 KI81, u16 KL82) {
-	struct OREntry *h;
+struct OrEntry *findOrEntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OrEntry *h;
 	u16 index[3] = {KO81, KI81, KL82};
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
-	HASH_FIND(hh, ORSet, index, keylen, h);         // h: output pointer
+	HASH_FIND(hh, OrSet, index, keylen, h);         // h: output pointer
 
 	return h;
 }
 
-void addOREntry(u16 KO81, u16 KI81, u16 KL82) {
-	struct OREntry *h;
+void addOrEntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct OrEntry *h;
 
 	// As a set, we should avoid repetition of the key
-	if (!findOREntry(KO81, KI81, KL82)) {
-		h = malloc(sizeof(struct OREntry));
+	if (!findOrEntry(KO81, KI81, KL82)) {
+		h = malloc(sizeof(struct OrEntry));
 
 		h -> index[0] = KO81;
 		h -> index[1] = KI81;
 		h -> index[2] = KL82;
 
 		unsigned keylen = (unsigned)sizeof((h)->index);  
-		HASH_ADD(hh, ORSet, index[0], keylen, h);
+		HASH_ADD(hh, OrSet, index[0], keylen, h);
 	}
 }
 
-void printOREntries(void) {
-	struct OREntry *h;
+void printOrEntries(void) {
+	struct OrEntry *h;
 
-	for(h = ORSet; h != NULL; h = (struct OREntry*)(h -> hh.next)) {
+	for(h = OrSet; h != NULL; h = (struct OrEntry*)(h -> hh.next)) {
 		printf("(KO81, KI81, KL82):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
 	}
 }
 
-void deleteAllOREntries(void) {
-	struct OREntry *currentEntry, *tmp;
+void deleteAllOrEntries(void) {
+	struct OrEntry *currentEntry, *tmp;
 
-	HASH_ITER(hh, ORSet, currentEntry, tmp) {
-    	HASH_DEL(ORSet, currentEntry);  			/* delete it (entries advances to next) */
-    	free(currentEntry);             						/* free it */
-    }
+	HASH_ITER(hh, OrSet, currentEntry, tmp) {
+		HASH_DEL(OrSet, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
 }
 
 /*-------------------------------------- tmp OR Set -----------------------------------------*/
 
-/*
-struct tmpOREntry {
+struct tmpOrEntry {
 	u16 index[3];       	// key:		(KO81, KI81, KL82)     							48 Byte  
 	UT_hash_handle hh;      // makes this structure hashable                56 Byte
 };
-*/
 
-struct OREntry *tmpORSet = NULL;
+struct tmpOrEntry *tmpOrSet = NULL;
 
-struct OREntry *findTmpOREntry(u16 KO81, u16 KI81, u16 KL82) {
-	struct OREntry *h;
+struct tmpOrEntry *findTmpOrEntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct tmpOrEntry *h;
 	u16 index[3] = {KO81, KI81, KL82};
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
-	HASH_FIND(hh, tmpORSet, index, keylen, h);         // h: output pointer
+	HASH_FIND(hh, tmpOrSet, index, keylen, h);         // h: output pointer
 
 	return h;
 }
 
-void addTmpOREntry(u16 KO81, u16 KI81, u16 KL82) {
-	struct OREntry *h;
+void addTmpOrEntry(u16 KO81, u16 KI81, u16 KL82) {
+	struct tmpOrEntry *h;
 
 	// As a set, we should avoid repetition of the key
-	if (!findTmpOREntry(KO81, KI81, KL82)) {
-		h = malloc(sizeof(struct OREntry));
+	if (!findTmpOrEntry(KO81, KI81, KL82)) {
+		h = malloc(sizeof(struct OrEntry));
 
 		h -> index[0] = KO81;
 		h -> index[1] = KI81;
 		h -> index[2] = KL82;
 
 		unsigned keylen = (unsigned)sizeof((h)->index);  
-		HASH_ADD(hh, tmpORSet, index[0], keylen, h);
+		HASH_ADD(hh, tmpOrSet, index[0], keylen, h);
 	}
 }
 
-void printTmpOREntries(void) {
-	struct OREntry *h;
+void printTmpOrEntries(void) {
+	struct tmpOrEntry *h;
 
-	for(h = tmpORSet; h != NULL; h = (struct OREntry*)(h -> hh.next)) {
+	for(h = tmpOrSet; h != NULL; h = (struct tmpOrEntry*)(h -> hh.next)) {
 		printf("(KO81, KI81, KL82):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
 	}
 }
 
-void deleteAllTmpOREntries(void) {
-	struct OREntry *currentEntry, *tmp;
+void deleteAllTmpOrEntries(void) {
+	struct tmpOrEntry *currentEntry, *tmp;
 
-	HASH_ITER(hh, tmpORSet, currentEntry, tmp) {
-    	HASH_DEL(tmpORSet, currentEntry);  			/* delete it (entries advances to next) */
-    	free(currentEntry);             						/* free it */
-    }
+	HASH_ITER(hh, tmpOrSet, currentEntry, tmp) {
+		HASH_DEL(tmpOrSet, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
 }
 
+/*--------------------------------------- AND Set -------------------------------------------*/
+
+struct AndEntry {
+	u16 index[3];       	// key:		(KO83, KI83, KL81)     				48 Byte  
+	UT_hash_handle hh;      // makes this structure hashable                56 Byte
+};
+
+struct AndEntry *AndSet = NULL;
+
+struct AndEntry *findAndEntry(u16 KO83, u16 KI83, u16 KL81) {
+	struct AndEntry *h;
+	u16 index[3] = {KO83, KI83, KL81};
+
+	unsigned keylen = (unsigned)sizeof((h)->index);  
+	HASH_FIND(hh, AndSet, index, keylen, h);         // h: output pointer
+
+	return h;
+}
+
+void addAndEntry(u16 KO83, u16 KI83, u16 KL81) {
+	struct AndEntry *h;
+
+	// As a set, we should avoid repetition of the key
+	if (!findAndEntry(KO83, KI83, KL81)) {
+		h = malloc(sizeof(struct AndEntry));
+
+		h -> index[0] = KO83;
+		h -> index[1] = KI83;
+		h -> index[2] = KL81;
+
+		unsigned keylen = (unsigned)sizeof((h)->index);  
+		HASH_ADD(hh, AndSet, index[0], keylen, h);
+	}
+}
+
+void printAndEntries(void) {
+	struct AndEntry *h;
+
+	for(h = AndSet; h != NULL; h = (struct AndEntry*)(h -> hh.next)) {
+		printf("(KO83, KI83, KL81):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
+	}
+}
+
+void deleteAllAndEntries(void) {
+	struct AndEntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, AndSet, currentEntry, tmp) {
+		HASH_DEL(AndSet, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
+}
+
+/*------------------------------------- tmp AND Set -----------------------------------------*/
+
+struct tmpAndEntry {
+	u16 index[3];       	// key:		(KO83, KI83, KL81)					48 Byte  
+	UT_hash_handle hh;      // makes this structure hashable                56 Byte
+};
+
+struct tmpAndEntry *tmpAndSet = NULL;
+
+struct tmpAndEntry *findTmpAndEntry(u16 KO83, u16 KI83, u16 KL81) {
+	struct tmpAndEntry *h;
+	u16 index[3] = {KO83, KI83, KL81};
+
+	unsigned keylen = (unsigned)sizeof((h)->index);  
+	HASH_FIND(hh, tmpAndSet, index, keylen, h);         // h: output pointer
+
+	return h;
+}
+
+void addTmpAndEntry(u16 KO83, u16 KI83, u16 KL81) {
+	struct tmpAndEntry *h;
+
+	// As a set, we should avoid repetition of the key
+	if (!findTmpAndEntry(KO83, KI83, KL81)) {
+		h = malloc(sizeof(struct AndEntry));
+
+		h -> index[0] = KO83;
+		h -> index[1] = KI83;
+		h -> index[2] = KL81;
+
+		unsigned keylen = (unsigned)sizeof((h)->index);  
+		HASH_ADD(hh, tmpAndSet, index[0], keylen, h);
+	}
+}
+
+void printTmpAndEntries(void) {
+	struct tmpAndEntry *h;
+
+	for(h = tmpAndSet; h != NULL; h = (struct tmpAndEntry*)(h -> hh.next)) {
+		printf("(KO83, KI83, KL81):\t(%04x, %04x, %04x)\n", h -> index[0], h -> index[1], h -> index[2]);
+	}
+}
+
+void deleteAllTmpAndEntries(void) {
+	struct tmpAndEntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, tmpAndSet, currentEntry, tmp) {
+		HASH_DEL(tmpAndSet, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
+}
 
 /*-------------------------------------- KL82 / KL81 ---------------------------------------*/
 
@@ -399,7 +500,7 @@ static u16 FI(u16 in, u16 subkey) {
 }
 
 u16 rightRotate(u16 n, unsigned int d) {
-    return (n >> d) | (n << (16 - d));
+	return (n >> d) | (n << (16 - d));
 }
 
 /*------------------------------------- Lookup Table ---------------------------------------*/
@@ -416,7 +517,6 @@ static short OR[] =
   0, 3, 3, 0
 };
 
-/*
 static short AND[] = 
 {
   2, 3, 0, 1,
@@ -424,7 +524,6 @@ static short AND[] =
   0, 3, 0, 3,
   1, 3, 3, 1
 };
-*/
 
 /*------------------------------------- Dynamic Array --------------------------------------*/
 // https://stackoverflow.com/questions/3536153/c-dynamically-growing-array
@@ -444,61 +543,31 @@ void initArray(Array *a, size_t initialSize) {
 void insertArray(Array *a, int element) {
 	// a->used is the number of used entries, because a->array[a->used++] updates a->used only *after* the array has been accessed.
 	// Therefore a->used can go up to a->size 
- 	if (a -> used == a -> size) {
-    	a -> size *= 2;
-    	a -> array = realloc(a -> array, a -> size * sizeof(int));
-  	}
-  	a -> array[a -> used++] = element;
+	if (a -> used == a -> size) {
+		a -> size *= 2;
+		a -> array = realloc(a -> array, a -> size * sizeof(int));
+	}
+	a -> array[a -> used++] = element;
 }
 
 void freeArray(Array *a) {
-  	free(a -> array);
-  	a -> array = NULL;
-  	a -> used = a -> size = 0;
+	free(a -> array);
+	a -> array = NULL;
+	a -> used = a -> size = 0;
 }
 
 /*--------------------------------------- Find KL82 ----------------------------------------*/
 
 Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 
-    // Finding input and output differences of the OR operator for bot the coupples of texts
-
-    //printf("KO81:\t%04x\n", KO81);
-	//printf("KI81:\t%04x\n", KI81);
-
-	//printf("Ca^LL:\t%04x\n", (u16)(Ca[0]<<8)+(Ca[1]));	// Ca^LL
-	//printf("Ca^LR:\t%04x\n", (u16)(Ca[2]<<8)+(Ca[3]));	// Ca^LR
-	//printf("Ca^RL:\t%04x\n", (u16)(Ca[4]<<8)+(Ca[5]));	// Ca^RL
-	//printf("Ca^RR:\t%04x\n", (u16)(Ca[6]<<8)+(Ca[7]));	// Ca^RR
-
-	//printf("Cc^LL:\t%04x\n", (u16)(Cc[0]<<8)+(Cc[1]));	// Cc^LL
-	//printf("Cc^LR:\t%04x\n", (u16)(Cc[2]<<8)+(Cc[3]));	// Cc^LR
-	//printf("Cc^RL:\t%04x\n", (u16)(Cc[4]<<8)+(Cc[5]));	// Cc^RL
-	//printf("Cc^RR:\t%04x\n", (u16)(Cc[6]<<8)+(Cc[7]));	// Cc^RR
+	// Finding input and output differences of the OR operator for bot the coupples of texts
+	// Ca^LL = (u16)(Ca[0]<<8)+(Ca[1])
+	// Ca^LR = (u16)(Ca[2]<<8)+(Ca[3])
+	// Ca^RL = (u16)(Ca[4]<<8)+(Ca[5])
+	// Ca^RR = (u16)(Ca[6]<<8)+(Ca[7])
 
 	u16 Xac = ((u16)(Ca[2]<<8)+(Ca[3])) ^ ((u16)(Cc[2]<<8)+(Cc[3]));	// Ca^LR ^ Cc^LR
 	u16 Xbd = ((u16)(Cb[2]<<8)+(Cb[3])) ^ ((u16)(Cd[2]<<8)+(Cd[3]));	// Cb^LR ^ Cd^LR
-
-	//printf("Xac:\t%04x\n", Xac);
-	//printf("Xbd:\t%04x\n", Xbd);
-
-	/*
-	u16 X1aR = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81) ^ ((u16)(Ca[6]<<8)+(Ca[7]));	// FI81( Ca^RL ^ KO81, KI81 ) ^ Ca^RR
-	u16 X1cR = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81) ^ ((u16)(Cc[6]<<8)+(Cc[7]));	// FI81( Cc^RL ^ KO81, KI81 ) ^ Cc^RR
-	u16 X1bR = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81) ^ ((u16)(Cb[6]<<8)+(Cb[7]));	// FI81( Cb^RL ^ KO81, KI81 ) ^ Cb^RR
-	u16 X1dR = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81) ^ ((u16)(Cd[6]<<8)+(Cd[7]));	// FI81( Cd^RL ^ KO81, KI81 ) ^ Cd^RR
-	*/
-
-	//printf("X1aR:\t%04x\n", X1aR);
-	//printf("X1cR:\t%04x\n", X1cR);
-	//printf("X1bR:\t%04x\n", X1bR);
-	//printf("X1dR:\t%04x\n", X1dR);
-
-	/*
-	u16 Yac = rightRotate(((u16)(Ca[0]<<8)+(Ca[1])) ^ ((u16)(Cc[0]<<8)+(Cc[1])) ^ X1aR ^ X1cR, 1);	// ( Ca^LL ^ Cc^LL ^ X1a^R ^ X1c^R ) >>> 1
-	u16 Ybd = rightRotate(((u16)(Cb[0]<<8)+(Cd[1])) ^ ((u16)(Cb[0]<<8)+(Cd[1])) ^ X1bR ^ X1dR, 1);	// ( Cb^LL ^ Cd^LL ^ X1b^R ^ X1d^R ) >>> 1
-	*/
-
 	u16 Ya = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81);
 	u16 Yb = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81);
 	u16 Yc = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81);
@@ -507,21 +576,7 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 	u16 Yac = rightRotate(Ya ^ Yc ^ (u16)((Ca[0]<<8)+(Ca[1])) ^ (u16)((Cc[0]<<8)+(Cc[1])), 1);
 	u16 Ybd = rightRotate(Yb ^ Yd ^ (u16)((Cb[0]<<8)+(Cb[1])) ^ (u16)((Cd[0]<<8)+(Cd[1])), 1);
 
-	//printf("Yac:\t%04x\n", Yac);
-	//printf("Ybd:\t%04x\n", Ybd);
-
-	/*
-	if (KO81 == 0x2013 && KI81 == 0x2310) {
-    	printf("KO81:\t%04x\n", KO81);
-    	printf("KI81:\t%04x\n", KI81);
-    	printf("Xac:\t%04x\n", Xac);
-		printf("Xbd:\t%04x\n", Xbd);
-    	printf("Yac:\t%04x\n", Yac);
-		printf("Ybd:\t%04x\n", Ybd);
-    }
-	*/
-
-	Array a;					// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
+	Array a;					// will contain all the duplicates of the key KL82 in case we found {0,1} in the lookup table
 	initArray(&a, 4);	
 	int KL82 = 0;
 	insertArray(&a, KL82);
@@ -532,46 +587,109 @@ Array findKL82(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81) {
 		int i = 0;
 		int j = 0;
 
-	    if (Xac & 1) i += 2;	// Current bit is set to 1
-	    if (Yac & 1) i += 1;
-	    if (Xbd & 1) j += 2;
-	    if (Ybd & 1) j += 1;
+		if (Xac & 1) i += 2;	// Current bit is set to 1
+		if (Yac & 1) i += 1;
+		if (Xbd & 1) j += 2;
+		if (Ybd & 1) j += 1;
 
-	    int b = OR[4*i + j];
+		int b = OR[4*i + j];
 
-	    if (b == 3) {
-	    	freeArray(&a);
-	    	break;
-	    } else if (b == 1) {
-	    	for (int i = 0; i < a.used; i++) {
+		if (b == 3) {
+			freeArray(&a);
+			break;
+		} else if (b == 1) {
+			for (int i = 0; i < a.used; i++) {
 				a.array[i] = a.array[i] + pow(2, p);
 			}
-	    } else if (b == 2) {
-	    	int nKeys = a.used;
+		} else if (b == 2) {
+			int nKeys = a.used;
 			for (int i = 0; i < nKeys; i++) {
 				int m = a.array[i];			// n -> KL82[p] = 0
 				m = m + pow(2, p);			// m -> KL82[p] = 1
 				insertArray(&a, m);
 			}
-	    }
-				    
+		}
+					
 		Xac >>= 1;
 		Yac >>= 1;
 		Xbd >>= 1;
 		Ybd >>= 1;
 	}
 
-	/*
-	if (KO81 == 0x2013 && KI81 == 0x2310) {
-		if (a.used == 0) {
-			printf("No valid KL82 found.\n");
-		} else {
-	    	for (int i = 0; i < a.used; i++) {
-	    		printf("KL82:\t%04x\n", a.array[i]);
-	    	}
-	    }
-    }
-	*/
+	return a;
+}
+
+/*--------------------------------------- Find KL81 ----------------------------------------*/
+
+Array findKL81(u8 *Ca, u8 *Cb, u8 *Cc, u8 *Cd, u16 KO81, u16 KI81, u16 KO83, u16 KI83) {
+
+	// Finding input and output differences of the OR operator for bot the coupples of texts
+	// Ca^LL = (u16)(Ca[0]<<8)+(Ca[1])
+	// Ca^LR = (u16)(Ca[2]<<8)+(Ca[3])
+	// Ca^RL = (u16)(Ca[4]<<8)+(Ca[5])
+	// Ca^RR = (u16)(Ca[6]<<8)+(Ca[7])
+
+	u16 X1a = FI(((u16)(Ca[4]<<8)+(Ca[5])) ^ KO81, KI81);		// FI(CaRL ^ KO81, KI81)
+	u16 X1b = FI(((u16)(Cb[4]<<8)+(Cb[5])) ^ KO81, KI81);		
+	u16 X1c = FI(((u16)(Cc[4]<<8)+(Cc[5])) ^ KO81, KI81);		
+	u16 X1d = FI(((u16)(Cd[4]<<8)+(Cd[5])) ^ KO81, KI81);		
+
+	u16 Xa = FI(X1a ^ ((u16)(Ca[6]<<8)+(Ca[7])) ^ KO83, KI83) ^ X1a;				// FI(X1a ^ CaRR ^ KO83, KI83) ^ X1a	
+	u16 Xb = FI(X1b ^ ((u16)(Cb[6]<<8)+(Cb[7])) ^ KO83, KI83) ^ X1b;	
+	u16 Xc = FI(X1c ^ ((u16)(Cc[6]<<8)+(Cc[7])) ^ KO83, KI83 ^ 0x8000) ^ X1c;	
+	u16 Xd = FI(X1d ^ ((u16)(Cd[6]<<8)+(Cd[7])) ^ KO83, KI83 ^ 0x8000) ^ X1d;	
+
+	u16 Yac = rightRotate(Xa ^ Xc ^ ((u16)(Ca[2]<<8)+(Ca[3])) ^ ((u16)(Cc[2]<<8)+(Cc[3])), 1);	//(Xa ^ Xc ^ CaLR ^ CcLR) >>> 1
+	u16 Ybd = rightRotate(Xb ^ Xd ^ ((u16)(Cb[2]<<8)+(Cb[3])) ^ ((u16)(Cd[2]<<8)+(Cd[3])), 1);
+
+	u16 Xac = X1a ^ X1c;
+	u16 Xbd = X1b ^ X1d;
+
+	Array a;					// will contain all the duplicates of the key KL81 in case we found {0,1} in the lookup table
+	initArray(&a, 4);	
+	int KL81 = 0;
+	insertArray(&a, KL81);
+
+	// For each bit in (Xac, Yac, Xbd, Ybd) find the corresponding value of the key KL82 through the lookup table
+
+	for (int p = 0; p < 16; p++) {
+		int i = 0;
+		int j = 0;
+
+		if (Xac & 1) i += 2;	// Current bit is set to 1
+		if (Yac & 1) i += 1;
+		if (Xbd & 1) j += 2;
+		if (Ybd & 1) j += 1;
+
+		//printf("p: %d\t", 4*i + j);
+
+		int b = AND[4*i + j];
+
+		//printf("b: %d\n", b);
+
+		if (b == 3) {
+			freeArray(&a);
+			break;
+		} else if (b == 1) {
+			for (int i = 0; i < a.used; i++) {
+				a.array[i] = a.array[i] + pow(2, p);
+			}
+		} else if (b == 2) {
+			int nKeys = a.used;
+			for (int i = 0; i < nKeys; i++) {
+				int m = a.array[i];			// n -> KL81[p] = 0
+				m = m + pow(2, p);			// m -> KL81[p] = 1
+				insertArray(&a, m);
+			}
+		}
+					
+		Xac >>= 1;
+		Yac >>= 1;
+		Xbd >>= 1;
+		Ybd >>= 1;
+	}
+
+	//printf("\n");
 
 	return a;
 }
@@ -935,78 +1053,37 @@ int main(void) {
 		 *		the possible values of the corresponding bit of KL 8,2 are given
 		 *-------------------------------------------------------------------------------------------*/
 
-		printf("Guessing the keys KO81 and KO82...\n");
+		printf("Guessing the keys KO81 and KI81...\n");
 
 		z = 0;	// Initializing the progress bar
 
 		int nSuggestedKeys = 0;
 
 		KO81 = 0x0000;
-		KI81 = 0x0000;
+		KI81 = 0x0000;	
 
 		for (int ko = 0; ko <= 0xffff; ko++) {
-
 			KI81 = 0x0000;
 			
 			for (int ki = 0; ki <= 0xffff; ki++) {
+				Array a = findKL82(Ca, Cb, Cc, Cd, KO81, KI81);
 
-				//SimpleSet set;
-    			//set_init(&set);
+				if (a.used > 0) {
+					for (int i = 0; i < a.used; i++) {
 
-    			Array a = findKL82(Ca, Cb, Cc, Cd, KO81, KI81);
-
-    			if (a.used > 0) {
-    				//printf("\n");
-    				//if (KO81 == 0x2013 && KI81 == 0x2310) {
-    				//	printf("KO81:\t%04x\n", KO81);
-    				//	printf("KI81:\t%04x\n", KI81);
-    				//}
-
-    				for (int i = 0; i < a.used; i++) {
-						//printf("KL82 %d:\t%04x\n", i, a.array[i]);
-
-    					/*
-						u16 keys[3];
-						keys[0] = KO81;
-						keys[1] = KI81;
-						keys[2] = a.array[i];
-						*/
-
-    					if (cont == 1) {									// devo riempire il set di partenza
-    						addOREntry(KO81, KI81, a.array[i]);
-    					} else {											// devo riempire un altro set, dopo di che farò l'intersezione
-    						if (findOREntry(KO81, KI81, a.array[i])) {	
-    							printf("Inteseption found!\n");
-    							printf("KO81:\t%04x\n", KO81);
-    							printf("KI81:\t%04x\n", KI81);
-    							printf("KL82:\t%04x\n", a.array[i]);
-								//addTmpOREntry(KO81, KI81, a.array[i]);		// se la tripla è in ORSet, allora la aggiungo ad un nuovo set
+						if (cont == 1) {									// devo riempire il set di partenza
+							addOrEntry(KO81, KI81, a.array[i]);
+						} else {											// devo riempire un altro set, dopo di che farò l'intersezione
+							if (findOrEntry(KO81, KI81, a.array[i])) {	
+								addTmpOrEntry(KO81, KI81, a.array[i]);		// se la tripla è in OrSet, allora la aggiungo ad un nuovo set
 							}
-    					}
-
-    					/*
-    					if (KO81 == 0x2013 && KI81 == 0x2310) {
-	    					printf("KL82:\t%04x\n", a.array[i]);
-	    				}
-	    				*/
-    					
+						}
+						
 						nSuggestedKeys++;
-
-						//printf("%s:\t", name);
-						/*
-						for (int i = 0; i < 3; i++)
-							printf("%04x ", keys[i]);
-						printf("\n");
-						*/
 					}
-					//printf("\n");
+				}
 
-					// TODO: inserire (KO81, KI81, KL82) nell'insieme di possibili chiavi
-    			}
-
-    			freeArray(&a);
-
-				//if (KI81 < 0xffff) KI81++;
+				freeArray(&a);
 				KI81++;
 
 				if ((u32)((KO81<<16)+(KI81)) > z * (pow(2,32)/100.0)) {
@@ -1015,61 +1092,167 @@ int main(void) {
 				} else if ((u32)((KO81<<16)+(KI81)) == pow(2,32) - 1) {
 					printProgress(1);
 				}
-
-				//printf("%08x\n", (u32)((KO81<<16)+(KI81)));
-
 			}
 
-			//if (KO81 < 0xffff) {
 			KO81++;
-			//}
 		}
 		printf("\n");
-		/*
-		printf("%x\n", (u32)((KO81<<16)+(KI81)));
-		printf("%x\n", (int)pow(2,32));
-		printf("%f\n", pow(2,32));
-		*/
+		//printf("Suggested keys: \t%d\n", nSuggestedKeys);
+		//printf("Keys in the set OR: \t%d\n", HASH_COUNT(OrSet));
+		//printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpOrSet));
+		//printOrEntries();
 
-		printf("Suggested keys: \t%d\n", nSuggestedKeys);
-		printf("Keys in the set OR: \t%d\n", HASH_COUNT(ORSet));
-		printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpORSet));
-		//printOREntries();
-
-		/*
 		if (cont > 1) {
-			// assegno ad ORSet il nuovo set provvisorio
-			deleteAllOREntries();
-			ORSet = tmpORSet;
-	    	// libero il set provvisorio
-			deleteAllTmpOREntries();
+			// assegno ad OrSet il nuovo set provvisorio
+			deleteAllOrEntries();
+
+			struct tmpOrEntry *k;
+			for (k = tmpOrSet; k != NULL; k = k -> hh.next) {
+				addOrEntry(k -> index[0], k -> index[1], k -> index[2]);
+			}
+
+			// libero il set provvisorio
+			deleteAllTmpOrEntries();
 		}
-		*/
-
+		
 		nSuggestedKeys = 0;
-
-		printf("Keys in the set OR: \t%d\n", HASH_COUNT(ORSet));
-		printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpORSet));
-
 		cont++;
-		//break;
 	}
-
-	
 
 	/*-------------------------------------------------------------------------------------------
 	 *		Since all the right quartets suggest the same key, all the wrong keys are discarded
 	 * 		and the attacker obtains the correct value of (KO_8,1, KI_8,1, KL_8,2)
 	 *-------------------------------------------------------------------------------------------*/
 
+	printOrEntries();
+
 	/*-------------------------------------------------------------------------------------------
 	 *	(b) Guess the 32-bit value of KO_8,3 and KI_8,3
 	 *-------------------------------------------------------------------------------------------*/
 
+	// in teoria dovrei prima riordinarli, ma in realtà sono già ordinati come serve a me
+	// per ogni combinazione (KL81, KI81)
+
+	cont = 1;
+	u16 prevKO81, prevKI81;
+	u16 KO83, KI83;
+	struct OrEntry *k;
+	int nSuggestedKeys;
+
+	for (k = OrSet; k != NULL; k = k -> hh.next) {
+		KO81 = k -> index[0];
+		KI81 = k -> index[1];
+
+		KO81 = 0x2013;
+		KI81 = 0x2310;
+
+		if ((cont == 1) | ((KO81 == prevKO81) & (KI81 == prevKI81))) {
+			// ho una nuova combinazione di chiavi: per ogni quartetto devo generare tutte le possibili KO83 e KI83 e cercare KL81
+			for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
+				printf("Analysing quartet n. %d...\n", cont);
+
+				for (int i = 0; i < 8; i++) {
+					Ca[i] = (q -> CaCbCcCd)[i];
+					Cb[i] = (q -> CaCbCcCd)[i + 8];
+					Cc[i] = (q -> CaCbCcCd)[i + 16];
+					Cd[i] = (q -> CaCbCcCd)[i + 24];
+				}
+
+				printHex("index", q -> index, 4);
+				printHex("Ca", Ca, 8);				
+				printHex("Cb", Cb, 8);
+				printHex("Cc", Cc, 8);				
+				printHex("Cd", Cd, 8);
+
+				printf("Guessing the keys KO83 and KI83...\n");
+
+				z = 0;	// Initializing the progress bar
+				nSuggestedKeys = 0;
+
+				KO83 = 0x0000;
+				KI83 = 0x0000;	
+
+				for (int ko = 0; ko <= 0xffff; ko++) {
+					KI83 = 0x0000;
+					
+					for (int ki = 0; ki <= 0xffff; ki++) {
+						
+						Array a = findKL81(Ca, Cb, Cc, Cd, KO81, KI81, KO83, KI83);
+						
+						if (a.used > 0) {
+							for (int i = 0; i < a.used; i++) {
+
+								//printf("KO81, KI81, KO83, KI83, KL81:\t%04x, %04x, %04x, %04x, %04x\n", KO81, KI81, KO83, KI83, a.array[i]);
+
+								if (cont == 1) {									// devo riempire il set di partenza
+									addAndEntry(KO83, KI83, a.array[i]);
+								} else {											// devo riempire un altro set, dopo di che farò l'intersezione
+									if (findAndEntry(KO83, KI83, a.array[i])) {	
+										addTmpAndEntry(KO83, KI83, a.array[i]);		// se la tripla è in OrSet, allora la aggiungo ad un nuovo set
+									}
+								}
+								
+								nSuggestedKeys++;
+							}
+						}
+
+						freeArray(&a);
+
+						KI83++;
+
+						if ((u32)((KO83<<16)+(KI83)) > z * (pow(2,32)/100.0)) {
+							printProgress(z/100.0);
+							z++;
+						} else if ((u32)((KO83<<16)+(KI83)) == pow(2,32) - 1) {
+							printProgress(1);
+						}
+					}
+
+					KO83++;
+				}
+				printf("\n");
+				printf("Suggested keys: \t%d\n", nSuggestedKeys);
+				printf("Keys in the set AND: \t%d\n", HASH_COUNT(AndSet));
+				printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpAndSet));
+				//printAndEntries();
+				printTmpAndEntries();
+
+				if (cont > 1) {
+					// assegno ad OrSet il nuovo set provvisorio
+					deleteAllAndEntries();
+
+					struct tmpAndEntry *k;
+
+					for (k = tmpAndSet; k != NULL; k = k -> hh.next) {
+						addAndEntry(k -> index[0], k -> index[1], k -> index[2]);
+					}
+
+					// libero il set provvisorio
+					deleteAllTmpAndEntries();
+				}
+				
+				nSuggestedKeys = 0;
+				cont++;
+			}
+
+		}
+
+		printAndEntries();
+
+		break;
+
+		prevKO81 = KO81;
+		prevKI81 = KI81;
+	}
+
+
+	// per ogni quartetto corretto
+	// genero (KL83, KI83)
+
 	/*-------------------------------------------------------------------------------------------
 	 *		compute the input and output diﬀerences of the AND operation in both pairs
-	 		of each quartet. For each bit of the 16-bit AND operation of F L8, 
-	 		the possible values of the corresponding bit of KL_8,1 are given
+			of each quartet. For each bit of the 16-bit AND operation of F L8, 
+			the possible values of the corresponding bit of KL_8,1 are given
 	 *-------------------------------------------------------------------------------------------*/
 
 	/*-------------------------------------------------------------------------------------------
