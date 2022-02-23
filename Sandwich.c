@@ -125,9 +125,9 @@ void printDataCollectionEntries(void) {
 	struct dataCollectionEntry *h;
 
 	for(h = dataCollectionTable; h != NULL; h = (struct dataCollectionEntry*)(h -> hh.next)) {
-		printHex("H_id", h -> index, 4);
-		printHex("H_Ca", h -> CaCb, 8);
-		printHex("H_Cb", h -> CaCb + 8, 8);
+		printHex("Id", h -> index, 4);
+		printHex("Ca", h -> CaCb, 8);
+		printHex("Cb", h -> CaCb + 8, 8);
 	}
 }
 
@@ -186,11 +186,11 @@ void printRightQuartetsEntries(void) {
 	struct rightQuartetsEntry *h;
 
 	for(h = rightQuartetsTable; h != NULL; h = (struct rightQuartetsEntry*)(h -> hh.next)) {
-		printHex("H_id", h -> index, 4);
-		printHex("H_Ca", h -> CaCbCcCd, 8);
-		printHex("H_Cb", h -> CaCbCcCd + 8, 8);
-		printHex("H_Cc", h -> CaCbCcCd + 16, 8);
-		printHex("H_Cd", h -> CaCbCcCd + 24, 8);
+		printHex("Id", h -> index, 4);
+		printHex("Ca", h -> CaCbCcCd, 8);
+		printHex("Cb", h -> CaCbCcCd + 8, 8);
+		printHex("Cc", h -> CaCbCcCd + 16, 8);
+		printHex("Cd", h -> CaCbCcCd + 24, 8);
 	}
 }
 
@@ -274,7 +274,7 @@ void deleteAllOrEntries(void) {
 /*-------------------------------------- tmp OR Set -----------------------------------------*/
 
 struct tmpOrEntry {
-	u16 index[3];       	// key:		(KO81, KI81, KL82)     							48 Byte  
+	u16 index[3];       	// key:		(KO81, KI81, KL82)     				48 Byte  
 	UT_hash_handle hh;      // makes this structure hashable                56 Byte
 };
 
@@ -285,7 +285,7 @@ struct tmpOrEntry *findTmpOrEntry(u16 KO81, u16 KI81, u16 KL82) {
 	u16 index[3] = {KO81, KI81, KL82};
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
-	HASH_FIND(hh, tmpOrSet, index, keylen, h);         // h: output pointer
+	HASH_FIND(hh, tmpOrSet, index, keylen, h);
 
 	return h;
 }
@@ -293,7 +293,6 @@ struct tmpOrEntry *findTmpOrEntry(u16 KO81, u16 KI81, u16 KL82) {
 void addTmpOrEntry(u16 KO81, u16 KI81, u16 KL82) {
 	struct tmpOrEntry *h;
 
-	// As a set, we should avoid repetition of the key
 	if (!findTmpOrEntry(KO81, KI81, KL82)) {
 		h = malloc(sizeof(struct OrEntry));
 
@@ -337,7 +336,7 @@ struct AndEntry *findAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 	u16 index[3] = {KO83, KI83, KL81};
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
-	HASH_FIND(hh, AndSet, index, keylen, h);         // h: output pointer
+	HASH_FIND(hh, AndSet, index, keylen, h);         
 
 	return h;
 }
@@ -345,7 +344,6 @@ struct AndEntry *findAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 void addAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 	struct AndEntry *h;
 
-	// As a set, we should avoid repetition of the key
 	if (!findAndEntry(KO83, KI83, KL81)) {
 		h = malloc(sizeof(struct AndEntry));
 
@@ -389,7 +387,7 @@ struct tmpAndEntry *findTmpAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 	u16 index[3] = {KO83, KI83, KL81};
 
 	unsigned keylen = (unsigned)sizeof((h)->index);  
-	HASH_FIND(hh, tmpAndSet, index, keylen, h);         // h: output pointer
+	HASH_FIND(hh, tmpAndSet, index, keylen, h);         
 
 	return h;
 }
@@ -397,7 +395,6 @@ struct tmpAndEntry *findTmpAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 void addTmpAndEntry(u16 KO83, u16 KI83, u16 KL81) {
 	struct tmpAndEntry *h;
 
-	// As a set, we should avoid repetition of the key
 	if (!findTmpAndEntry(KO83, KI83, KL81)) {
 		h = malloc(sizeof(struct AndEntry));
 
@@ -423,6 +420,61 @@ void deleteAllTmpAndEntries(void) {
 
 	HASH_ITER(hh, tmpAndSet, currentEntry, tmp) {
 		HASH_DEL(tmpAndSet, currentEntry);  			/* delete it (entries advances to next) */
+		free(currentEntry);             						/* free it */
+	}
+}
+
+/*-------------------------------------- Subkeys Set ----------------------------------------*/
+
+struct SubkeysEntry {
+	u16 index[6];       	// key:		(KO81, KI81, KL82, KO83, KI83, KL81)    96 Byte  
+	UT_hash_handle hh;      // makes this structure hashable                	56 Byte
+};
+
+struct SubkeysEntry *SubkeysSet = NULL;
+
+struct SubkeysEntry *findSubkeysEntry(u16 KO81, u16 KI81, u16 KL82, u16 KO83, u16 KI83, u16 KL81) {
+	struct SubkeysEntry *h;
+	u16 index[6] = {KO81, KI81, KL82, KO83, KI83, KL81};
+
+	unsigned keylen = (unsigned)sizeof((h)->index);  
+	HASH_FIND(hh, SubkeysSet, index, keylen, h);
+
+	return h;
+}
+
+void addSubkeysEntry(u16 KO81, u16 KI81, u16 KL82, u16 KO83, u16 KI83, u16 KL81) {
+	struct SubkeysEntry *h;
+
+	if (!findSubkeysEntry(KO81, KI81, KL82, KO83, KI83, KL81)) {
+		h = malloc(sizeof(struct SubkeysEntry));
+
+		h -> index[0] = KO81;
+		h -> index[1] = KI81;
+		h -> index[2] = KL82;
+		h -> index[3] = KO83;
+		h -> index[4] = KI83;
+		h -> index[5] = KL81;
+
+		unsigned keylen = (unsigned)sizeof((h)->index);  
+		HASH_ADD(hh, SubkeysSet, index[0], keylen, h);
+	}
+}
+
+void printSubkeysEntries(void) {
+	struct SubkeysEntry *h;
+
+	for(h = SubkeysSet; h != NULL; h = (struct SubkeysEntry*)(h -> hh.next)) {
+		printf("(KO81, KI81, KL82, KO83, KI83, KL81):\t(%04x, %04x, %04x, %04x, %04x, %04x)\n", 
+			h -> index[0], h -> index[1], h -> index[2], h -> index[3], h -> index[4], h -> index[5]);
+	}
+}
+
+void deleteAllSubkeysEntries(void) {
+	struct SubkeysEntry *currentEntry, *tmp;
+
+	HASH_ITER(hh, SubkeysSet, currentEntry, tmp) {
+		HASH_DEL(SubkeysSet, currentEntry);  			/* delete it (entries advances to next) */
 		free(currentEntry);             						/* free it */
 	}
 }
@@ -974,20 +1026,6 @@ int main(void) {
 	printRightQuartetsEntries();
 	printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
 
-	/*
-	u8 Caa[] = { 0x02, 0x6a, 0x48, 0x7a, 0xff, 0xff, 0xff, 0xff };
-	u8 Cbb[] = { 0xaa, 0xdc, 0xb9, 0x90, 0x8b, 0xbd, 0xed, 0x83 };
-	u8 Ccc[] = { 0x81, 0x98, 0xd0, 0x86, 0xff, 0xef, 0xff, 0xff };
-	u8 Cdd[] = { 0x95, 0x75, 0xfa, 0x5f, 0x8b, 0xad, 0xed, 0x83 };
-
-	u16 KO811 = 0x2013;
-	u16 KI811 = 0x2310;
-
-	findKL82(Caa, Cbb, Ccc, Cdd, KO811, KI811);
-
-	exit(0);
-	*/
-
 	//nRightQuartets[HASH_COUNT(rightQuartetsTable)]++;
 	//rightQuartets += HASH_COUNT(rightQuartetsTable);
 	
@@ -1012,7 +1050,7 @@ int main(void) {
 	//printf("Right quartets found: \t%d, of which are real: \t%d\n", rightQuartets, realRightQuartets);
 
 	/*-------------------------------------------------------------------------------------------
-	 * 3. Analyzing Right Quartets: (TODO)
+	 * 3. Analyzing Right Quartets:
 	 *-------------------------------------------------------------------------------------------*/
 
 	if (HASH_COUNT(rightQuartetsTable) == 0) {
@@ -1040,11 +1078,13 @@ int main(void) {
 			Cd[i] = (q -> CaCbCcCd)[i + 24];
 		}
 
+		/*
 		printHex("index", q -> index, 4);
 		printHex("Ca", Ca, 8);				
 		printHex("Cb", Cb, 8);
 		printHex("Cc", Cc, 8);				
 		printHex("Cd", Cd, 8);
+		*/
 
 		/*-------------------------------------------------------------------------------------------
 		 *		For the two pairs (C_a, C_c) and (C_b, C_d) use the value of the guessed key 
@@ -1134,19 +1174,32 @@ int main(void) {
 	// per ogni combinazione (KL81, KI81)
 
 	cont = 1;
-	u16 prevKO81, prevKI81;
+	u16 prevKO81 = 0x0000;
+	u16 prevKI81 = 0x0000;
 	u16 KO83, KI83;
 	struct OrEntry *k;
 	int nSuggestedKeys;
+
+	if (OrSet -> index[0] == 0x0000) prevKO81 = 0x0001;
+	if (OrSet -> index[1] == 0x0000) prevKI81 = 0x0001;
 
 	for (k = OrSet; k != NULL; k = k -> hh.next) {
 		KO81 = k -> index[0];
 		KI81 = k -> index[1];
 
-		KO81 = 0x2013;
-		KI81 = 0x2310;
+		//KO81 = 0x2013;
+		//KI81 = 0x2310;
 
-		if ((cont == 1) | ((KO81 == prevKO81) & (KI81 == prevKI81))) {
+		if ((KO81 != prevKO81) || (KI81 != prevKI81)) {
+			printf("KO81: %04x, KI81: %04x\n", KO81, KI81);
+			cont = 1;
+
+			/*-------------------------------------------------------------------------------------------
+			 *		compute the input and output diﬀerences of the AND operation in both pairs
+					of each quartet. For each bit of the 16-bit AND operation of F L8, 
+					the possible values of the corresponding bit of KL_8,1 are given
+			 *-------------------------------------------------------------------------------------------*/
+
 			// ho una nuova combinazione di chiavi: per ogni quartetto devo generare tutte le possibili KO83 e KI83 e cercare KL81
 			for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
 				printf("Analysing quartet n. %d...\n", cont);
@@ -1158,11 +1211,13 @@ int main(void) {
 					Cd[i] = (q -> CaCbCcCd)[i + 24];
 				}
 
+				/*
 				printHex("index", q -> index, 4);
 				printHex("Ca", Ca, 8);				
 				printHex("Cb", Cb, 8);
 				printHex("Cc", Cc, 8);				
 				printHex("Cd", Cd, 8);
+				*/
 
 				printf("Guessing the keys KO83 and KI83...\n");
 
@@ -1211,14 +1266,13 @@ int main(void) {
 					KO83++;
 				}
 				printf("\n");
-				printf("Suggested keys: \t%d\n", nSuggestedKeys);
-				printf("Keys in the set AND: \t%d\n", HASH_COUNT(AndSet));
-				printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpAndSet));
+				//printf("Suggested keys: \t%d\n", nSuggestedKeys);
+				//printf("Keys in the set AND: \t%d\n", HASH_COUNT(AndSet));
+				//printf("Keys in the set tmp: \t%d\n", HASH_COUNT(tmpAndSet));
 				//printAndEntries();
-				printTmpAndEntries();
+				//printTmpAndEntries();
 
 				if (cont > 1) {
-					// assegno ad OrSet il nuovo set provvisorio
 					deleteAllAndEntries();
 
 					struct tmpAndEntry *k;
@@ -1227,7 +1281,6 @@ int main(void) {
 						addAndEntry(k -> index[0], k -> index[1], k -> index[2]);
 					}
 
-					// libero il set provvisorio
 					deleteAllTmpAndEntries();
 				}
 				
@@ -1235,28 +1288,46 @@ int main(void) {
 				cont++;
 			}
 
+			//printOrEntries();
+			printf("Keys in the set AND: \t%d\n", HASH_COUNT(AndSet));
+			printAndEntries();			
 		}
 
-		printAndEntries();
+		/*-------------------------------------------------------------------------------------------
+		 *		the attacker obtains the correct value of (KO_8,3, KI_8,3, KL_8,1)
+		 *-------------------------------------------------------------------------------------------*/
 
-		break;
+		struct OrEntry *o;
+		struct AndEntry *a;
+
+		if (HASH_COUNT(AndSet) > 0) {
+			for (o = OrSet; o != NULL; o = o -> hh.next) {
+				if ((KO81 == o -> index[0]) && (KI81 == o-> index[1])) {
+					for (a = AndSet; a != NULL; a = a -> hh.next) {
+						addSubkeysEntry(o -> index[0], o -> index[1], o -> index[2], a -> index[0], a -> index[1], a -> index[2]);
+					}
+				}
+			}
+		}
 
 		prevKO81 = KO81;
 		prevKI81 = KI81;
+
+		//break;
 	}
 
-
-	// per ogni quartetto corretto
-	// genero (KL83, KI83)
+	deleteAllOrEntries();
+	deleteAllAndEntries();
+	printSubkeysEntries();
 
 	/*-------------------------------------------------------------------------------------------
-	 *		compute the input and output diﬀerences of the AND operation in both pairs
-			of each quartet. For each bit of the 16-bit AND operation of F L8, 
-			the possible values of the corresponding bit of KL_8,1 are given
+	 * 4. Finding the Right Key: (TODO)
 	 *-------------------------------------------------------------------------------------------*/
 
 	/*-------------------------------------------------------------------------------------------
-	 *		the attacker obtains the correct value of (KO_8,3, KI_8,3, KL_8,1)
+	 * 	  	For each value of the 96 bits of (KO _8,1, KI 8,1, KO_8,3, KI_8,3, KL_8,1, KL_8,2) 
+	 *		suggested in Step 3, guess the remaining 32 bits of the key, and perform 
+	 *	 	a trial encryption.
 	 *-------------------------------------------------------------------------------------------*/
 
 	clock_t end = clock();
