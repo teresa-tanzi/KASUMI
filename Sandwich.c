@@ -1069,7 +1069,7 @@ int main(void) {
 	u16 KO81, KI81;
 
 	for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
-		printf("Analysing quartet n. %d...\n", cont);
+		printf("Analyzing quartet n. %d\n", cont);
 
 		for (int i = 0; i < 8; i++) {
 			Ca[i] = (q -> CaCbCcCd)[i];
@@ -1202,7 +1202,7 @@ int main(void) {
 
 			// ho una nuova combinazione di chiavi: per ogni quartetto devo generare tutte le possibili KO83 e KI83 e cercare KL81
 			for (q = rightQuartetsTable; q != NULL; q = q->hh.next) {
-				printf("Analysing quartet n. %d...\n", cont);
+				printf("Analyzing quartet n. %d\n", cont);
 
 				for (int i = 0; i < 8; i++) {
 					Ca[i] = (q -> CaCbCcCd)[i];
@@ -1312,17 +1312,18 @@ int main(void) {
 
 		prevKO81 = KO81;
 		prevKI81 = KI81;
-
-		//break;
 	}
 
 	deleteAllOrEntries();
 	deleteAllAndEntries();
+	printf("I have found %d possible values for subkeys KO81, KI81, KL82, KO83, KI83, KL82:\n", HASH_COUNT(SubkeysSet));
 	printSubkeysEntries();
 
 	/*-------------------------------------------------------------------------------------------
 	 * 4. Finding the Right Key: (TODO)
 	 *-------------------------------------------------------------------------------------------*/
+
+	printf("PHASE 3: FINDING THE RIGHT KEY\n");
 
 	/*-------------------------------------------------------------------------------------------
 	 * 	  	For each value of the 96 bits of (KO _8,1, KI 8,1, KO_8,3, KI_8,3, KL_8,1, KL_8,2) 
@@ -1330,6 +1331,94 @@ int main(void) {
 	 *	 	a trial encryption.
 	 *-------------------------------------------------------------------------------------------*/
 
+	u8 P[8], C[8], trialC[8];
+
+	for (int i = 0; i < 8; i++) {
+		P[i] = rand() % 255;
+	}
+
+	memcpy(C, &P[0], 8*sizeof(*P));
+	KeySchedule(Ka);
+	Kasumi(C);
+
+	//printHex("Ka", Ka, 16);
+	//printHex("P", P, 8);
+	//printHex("C", C, 8);
+
+	u16 K3 = 0x0000;
+	u16 K5 = 0x0000;
+	u8 *guessedKa;
+	u16 KC[8] = {
+		0x0123, 0x4567, 0x89AB, 0xCDEF, 0xFEDC, 0xBA98, 0x7654, 0x3210 
+	};
+
+	struct SubkeysEntry *s;
+	cont = 1;
+
+	for (s = SubkeysSet; s != NULL; s = s -> hh.next) {		// (KO81, KI81, KL82, KO83, KI83, KL81)
+
+		printf("Analyzing keys set n. %d\n", cont);
+		printf("Guessing the keys K3 and K5...\n");
+		z = 0;	// Initializing the progress bar
+
+		for (int k3 = 0; k3 <= 0xffff; k3++) {				// devo usare delle variabili intere e non u16 sennò si azzera prima di finire e va in loop
+			for (int k5 = 0x0000; k5 <= 0xffff; k5++) {
+				guessedKa = (u8 [16]) {
+					rightRotate(s -> index[0], 5) >> 8,		// K1
+					rightRotate(s -> index[0], 5) & 0xff,
+					(s -> index[2] ^ KC[1]) >> 8,			// K2
+					(s -> index[2] ^ KC[1]) & 0xff,		
+					K3 >> 8,								// K3
+					K3 & 0xff,						
+					(s -> index[1] ^ KC[3]) >> 8,			// K4
+					(s -> index[1] ^ KC[3]) & 0xff,		
+					K5 >> 8,								// K5
+					K5 & 0xff,						
+					rightRotate(s -> index[3], 13) >> 8,	// K6
+					rightRotate(s -> index[3], 13) & 0xff,
+					(s -> index[4] ^ KC[6]) >> 8,			// K7
+					(s -> index[4] ^ KC[6]) & 0xff,		
+					rightRotate(s -> index[5], 1) >> 8,		// K8
+					rightRotate(s -> index[5], 1) & 0xff	
+				};
+
+				memcpy(trialC, &P[0], 8*sizeof(*P));
+				KeySchedule(guessedKa);
+				Kasumi(trialC);
+
+				/*
+				if ((K3 == 0xccdd) && (K5 == 0x1122)) {
+					printHex("guessedKa", guessedKa, 16);
+					printHex("P", P, 8);
+					printHex("trialC", trialC, 8);
+				}
+				*/
+
+				if (compareArray(trialC, C, 8)) {
+					printHex("\nFOUND KEY Ka", guessedKa, 16);
+					//break;
+					goto exit;
+				}
+
+				if ((u32)((K3<<16)+(K5)) > z * (pow(2,32)/100.0)) {
+					printProgress(z/100.0);
+					z++;
+				} else if ((u32)((K3<<16)+(K5)) == pow(2,32) - 1) {
+					printProgress(1);
+				}
+
+				K5++;
+			}
+
+			K3++;
+			K5 = 0x0000;
+		}
+
+		printf("\n");
+		cont++;
+	}
+
+	exit: ;
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf("Execution time (s): %.2f\n", time_spent);
