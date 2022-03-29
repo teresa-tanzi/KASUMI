@@ -223,6 +223,11 @@ int main(void) {
 	time_t t;
 	int exp = 24;
 	int nPlaintext = pow(2, exp);       // should be pow(2, 24)
+	int z = 0;                     // Initializes the progress bar
+	int nExec = 1000;
+
+	int foundRQ[40] = {0};
+	int realRQ[40] = {0};
 
 	//int realRightQuartets = 0;
 	//int rightQuartets = 0;
@@ -256,296 +261,323 @@ int main(void) {
 	 *		A is ﬁxed and X a assumes 2^24 arbitrary diﬀerent values. 
 	 *-------------------------------------------------------------------------------------------*/
 
-	srand((unsigned) time(&t));    // Initializes random number generator
-	int z = 0;                     // Initializes the progress bar
+	for (int v = 0; v < nExec; v++) {
 
-	u8 Pa[8], Pb[8], Pc[8], Pd[8], Ca[8], Cb[8], Cc[8], Cd[8];
-	u8 indexDC[4], indexRQ[4];
-	u8 A[4] = {
-		0xff, 0xff, 0xff, 0xff,
-	};
+		printf("Try # %d\n", v);
 
-	printf("PHASE 1: DATA COLLECTION\n");
-	printf("Generating Ca, Pa, Pb and Cb...\n");
+		srand((unsigned) time(&t));    // Initializes random number generator
+		z = 0;
 
-	for (int j = 0; j < nPlaintext; j++) {
+		u8 Pa[8], Pb[8], Pc[8], Pd[8], Ca[8], Cb[8], Cc[8], Cd[8];
+		u8 indexDC[4], indexRQ[4];
+		u8 A[4] = {
+			0xff, 0xff, 0xff, 0xff,
+		};
 
-		for (int i = 0; i < 4; i++) {
-			Ca[i] = rand() % 255;     // 255_10 = ff_16 = 11111111_2
-		}
-		for (int i = 0; i < 4; i++) {
-			Ca[4+i] = A[i];
-		}
+		//printf("PHASE 1: DATA COLLECTION\n");
+		printf("Generating Ca, Pa, Pb and Cb...\n");
 
-		//printHex("Ca", Ca, 8);
+		for (int j = 0; j < nPlaintext; j++) {
 
-		/*-------------------------------------------------------------------------------------------
-		 *		Ask for the decryption of all the ciphertexts under the key K_a and denote the plain-
-		 * 		text corresponding to C_a by P_a.
-		 *-------------------------------------------------------------------------------------------*/
-
-		memcpy(Pa, &Ca[0], 8*sizeof(*Ca));
-		KeySchedule(Ka);
-		KasumiDecipher(Pa);
-
-		//printHex("Pa", Pa, 8);
-
-		/*-------------------------------------------------------------------------------------------
-		 *		For each P_a, ask for the encryption of P_b = P_a xor (0_x, 0010 0000_x) 
-		 *		under the key K_b and denote the resulting ciphertext by C_b.
-		 *-------------------------------------------------------------------------------------------*/
-
-		for (int i = 0; i < 8; i++) {
-			if (i != 5)
-				Pb[i] = Pa[i];
-			else 
-				Pb[i] = Pa[i] ^ 0x10;
-		}
-
-		//printHex("Pb", Pb, 8);
-
-		memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
-		KeySchedule(Kb);
-		Kasumi(Cb);
-
-		//printHex("Cb", Cb, 8);
-
-		/*-------------------------------------------------------------------------------------------
-		 *      Store the pairs (C_a , C_b ) in a hash table indexed by the
-		 *      32-bit value C_b^R (i.e., the right half of C_b ).
-		 *-------------------------------------------------------------------------------------------*/
-
-		memcpy(indexDC, &Cb[4], 4*sizeof(*Cb));
-		//printHex("INDEX", indexDC, 4);
-
-		addDataCollectionEntry(indexDC, Ca, Cb);
-		//printEntries();
-
-		if (j > z * (nPlaintext/100.0)) {
-			printProgress(z/100.0);
-			z++;
-		} else if (j == nPlaintext - 1) 
-			printProgress(1);
-	}
-	printf("\n");
-
-	printf("Data collection hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, dataCollectionTable)/1000000000.0);
-
-	/*-------------------------------------------------------------------------------------------
-	 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x ),
-	 *		where A is the same constant as before, and Y_c assumes 2^24 arbitrary dif-
-	 *		ferent values. 
-	 *-------------------------------------------------------------------------------------------*/
-
-	z = 1;
-
-	printf("Generating Cc, Pc, Pd and Cd...\n");
-
-	for (int j = 0; j < nPlaintext; j++) {
-		for (int i = 0; i < 4; i++) {
-			Cc[i] = rand() % 255;     // 255_10 = ff_16 = 11111111_2
-			//Cc[i] = 0xaa;
-		}
-		for (int i = 0; i < 4; i++) {
-			if (i != 1)
-				Cc[4+i] = A[i];
-			else
-				Cc[4+i] = A[i] ^ 0x10;
-		}
-
-		//printHex("Cc", Cc, 8);    
-
-		/*-------------------------------------------------------------------------------------------
-		 *		Ask for the decryption of the ciphertexts under the key K_c
-		 * 		and denote the plaintext corresponding to C_c by P_c. 
-		 *-------------------------------------------------------------------------------------------*/
-
-		memcpy(Pc, &Cc[0], 8*sizeof(*Cc));
-		KeySchedule(Kc);
-		KasumiDecipher(Pc);
-
-		//printHex("Pc", Pc, 8);
-
-		/*-------------------------------------------------------------------------------------------
-		 *		For each P_c , ask for the encryption of P_d = P_c xor (0_x , 0010 0000_x)
-		 *		under the key K_d and denote the resulting ciphertext by C_d .
-		 *-------------------------------------------------------------------------------------------*/
-
-		for (int i = 0; i < 8; i++) {
-			if (i != 5)
-				Pd[i] = Pc[i];
-			else
-				Pd[i] = Pc[i] ^ 0x10;
-		}
-
-		//printHex("Pd", Pd, 8);
-
-		memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
-		KeySchedule(Kd);
-		Kasumi(Cd);
-
-		//printHex("Cd", Cd, 8);
-
-		/*-------------------------------------------------------------------------------------------
-		 *      Then, access the hash table in the entry
-		 *      corresponding to the value C_d^R ⊕ 00100000_x , and for each pair (C_a, C_b)
-		 *      found in this entry, apply Step 2 on the quartet (C_a, C_b, C_c, C_d).
-		 *-------------------------------------------------------------------------------------------*/
-
-		memcpy(indexDC, &Cd[4], 4*sizeof(*Cd));
-		indexDC[1] = indexDC[1] ^ 0x10;
-		//printHex("INDEX", index, 4);
-
-		struct dataCollectionEntry *h;
-
-		h = findDataCollectionEntry(indexDC);
-		
-		if (h) {
-
-			/*-------------------------------------------------------------------------------------------
-			 * 2. Identifying the Right Quartets:
-			 *-------------------------------------------------------------------------------------------*/
-
-			/*-------------------------------------------------------------------------------------------
-			 *	(a) Insert the approximately 2^16 remaining quartets (C_a, C_b, C_c, C_d) into a
-					hash table indexed by the 32-bit value C_a^L XOR C_c^L , and apply Step 3 only
-					to bins which contain at least three quartets.
-			 *-------------------------------------------------------------------------------------------*/
-
-			memcpy(Ca, &(h -> CaCb)[0], 8*sizeof(*Ca));
-			memcpy(Cb, &(h -> CaCb)[8], 8*sizeof(*Cb));
+			for (int i = 0; i < 4; i++) {
+				Ca[i] = rand() % 255;     // 255_10 = ff_16 = 11111111_2
+			}
+			for (int i = 0; i < 4; i++) {
+				Ca[4+i] = A[i];
+			}
 
 			//printHex("Ca", Ca, 8);
+
+			/*-------------------------------------------------------------------------------------------
+			 *		Ask for the decryption of all the ciphertexts under the key K_a and denote the plain-
+			 * 		text corresponding to C_a by P_a.
+			 *-------------------------------------------------------------------------------------------*/
+
+			memcpy(Pa, &Ca[0], 8*sizeof(*Ca));
+			KeySchedule(Ka);
+			KasumiDecipher(Pa);
+
+			//printHex("Pa", Pa, 8);
+
+			/*-------------------------------------------------------------------------------------------
+			 *		For each P_a, ask for the encryption of P_b = P_a xor (0_x, 0010 0000_x) 
+			 *		under the key K_b and denote the resulting ciphertext by C_b.
+			 *-------------------------------------------------------------------------------------------*/
+
+			for (int i = 0; i < 8; i++) {
+				if (i != 5)
+					Pb[i] = Pa[i];
+				else 
+					Pb[i] = Pa[i] ^ 0x10;
+			}
+
+			//printHex("Pb", Pb, 8);
+
+			memcpy(Cb, &Pb[0], 8*sizeof(*Pb));
+			KeySchedule(Kb);
+			Kasumi(Cb);
+
 			//printHex("Cb", Cb, 8);
 
-			memcpy(indexRQ, &Ca[0], 4*sizeof(*Ca));
+			/*-------------------------------------------------------------------------------------------
+			 *      Store the pairs (C_a , C_b ) in a hash table indexed by the
+			 *      32-bit value C_b^R (i.e., the right half of C_b ).
+			 *-------------------------------------------------------------------------------------------*/
+
+			memcpy(indexDC, &Cb[4], 4*sizeof(*Cb));
+			//printHex("INDEX", indexDC, 4);
+
+			addDataCollectionEntry(indexDC, Ca, Cb);
+			//printEntries();
+
+			if (j > z * (nPlaintext/100.0)) {
+				printProgress(z/100.0);
+				z++;
+			} else if (j == nPlaintext - 1) 
+				printProgress(1);
+		}
+		printf("\n");
+
+		//printf("Data collection hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, dataCollectionTable)/1000000000.0);
+
+		/*-------------------------------------------------------------------------------------------
+		 *	(b) Choose a structure of 2^24 ciphertexts of the form C_c = (Y_c , A xor 0010 0000_x ),
+		 *		where A is the same constant as before, and Y_c assumes 2^24 arbitrary dif-
+		 *		ferent values. 
+		 *-------------------------------------------------------------------------------------------*/
+
+		z = 1;
+
+		printf("Generating Cc, Pc, Pd and Cd...\n");
+
+		for (int j = 0; j < nPlaintext; j++) {
 			for (int i = 0; i < 4; i++) {
-				indexRQ[i] = indexRQ[i] ^ Cc[i];
+				Cc[i] = rand() % 255;     // 255_10 = ff_16 = 11111111_2
+				//Cc[i] = 0xaa;
+			}
+			for (int i = 0; i < 4; i++) {
+				if (i != 1)
+					Cc[4+i] = A[i];
+				else
+					Cc[4+i] = A[i] ^ 0x10;
 			}
 
-			addRightQuartetsEntry(indexRQ, Ca, Cb, Cc, Cd);
+			//printHex("Cc", Cc, 8);    
 
-			//printHex("FOUND", h -> CaCb, 8);
-			//printHex("FOUND", h -> CaCb + 8, 8);
+			/*-------------------------------------------------------------------------------------------
+			 *		Ask for the decryption of the ciphertexts under the key K_c
+			 * 		and denote the plaintext corresponding to C_c by P_c. 
+			 *-------------------------------------------------------------------------------------------*/
 
-			//free(h);		// se lo lascio segfaulta
+			memcpy(Pc, &Cc[0], 8*sizeof(*Cc));
+			KeySchedule(Kc);
+			KasumiDecipher(Pc);
+
+			//printHex("Pc", Pc, 8);
+
+			/*-------------------------------------------------------------------------------------------
+			 *		For each P_c , ask for the encryption of P_d = P_c xor (0_x , 0010 0000_x)
+			 *		under the key K_d and denote the resulting ciphertext by C_d .
+			 *-------------------------------------------------------------------------------------------*/
+
+			for (int i = 0; i < 8; i++) {
+				if (i != 5)
+					Pd[i] = Pc[i];
+				else
+					Pd[i] = Pc[i] ^ 0x10;
+			}
+
+			//printHex("Pd", Pd, 8);
+
+			memcpy(Cd, &Pd[0], 8*sizeof(*Pd));
+			KeySchedule(Kd);
+			Kasumi(Cd);
+
+			//printHex("Cd", Cd, 8);
+
+			/*-------------------------------------------------------------------------------------------
+			 *      Then, access the hash table in the entry
+			 *      corresponding to the value C_d^R ⊕ 00100000_x , and for each pair (C_a, C_b)
+			 *      found in this entry, apply Step 2 on the quartet (C_a, C_b, C_c, C_d).
+			 *-------------------------------------------------------------------------------------------*/
+
+			memcpy(indexDC, &Cd[4], 4*sizeof(*Cd));
+			indexDC[1] = indexDC[1] ^ 0x10;
+			//printHex("INDEX", index, 4);
+
+			struct dataCollectionEntry *h;
+
+			h = findDataCollectionEntry(indexDC);
+			
+			if (h) {
+
+				/*-------------------------------------------------------------------------------------------
+				 * 2. Identifying the Right Quartets:
+				 *-------------------------------------------------------------------------------------------*/
+
+				/*-------------------------------------------------------------------------------------------
+				 *	(a) Insert the approximately 2^16 remaining quartets (C_a, C_b, C_c, C_d) into a
+						hash table indexed by the 32-bit value C_a^L XOR C_c^L , and apply Step 3 only
+						to bins which contain at least three quartets.
+				 *-------------------------------------------------------------------------------------------*/
+
+				memcpy(Ca, &(h -> CaCb)[0], 8*sizeof(*Ca));
+				memcpy(Cb, &(h -> CaCb)[8], 8*sizeof(*Cb));
+
+				//printHex("Ca", Ca, 8);
+				//printHex("Cb", Cb, 8);
+
+				memcpy(indexRQ, &Ca[0], 4*sizeof(*Ca));
+				for (int i = 0; i < 4; i++) {
+					indexRQ[i] = indexRQ[i] ^ Cc[i];
+				}
+
+				addRightQuartetsEntry(indexRQ, Ca, Cb, Cc, Cd);
+
+				//printHex("FOUND", h -> CaCb, 8);
+				//printHex("FOUND", h -> CaCb + 8, 8);
+
+				//free(h);		// se lo lascio segfaulta
+			}
+			//else printf("id unknown\n");
+
+			if (j > z * (nPlaintext/100.0)) {
+				printProgress(z/100.0);
+				z++;
+			} else if (j == nPlaintext - 1) 
+				printProgress(1);
 		}
-		//else printf("id unknown\n");
+		printf("\n");
+		/* leaves about 2^16 quartets with the required diﬀerences */
+		//printf("I have found 2^%.1f potential right quartets.\n", log((double)HASH_COUNT(rightQuartetsTable))/log(2));
 
-		if (j > z * (nPlaintext/100.0)) {
-			printProgress(z/100.0);
-			z++;
-		} else if (j == nPlaintext - 1) 
-			printProgress(1);
+		// Free the memory used for the first hash table: the data we need now on are on the new hash table
+		deleteAllDataCollectionEntries();
+
+		/*-------------------------------------------------------------------------------------------
+		 *		apply Step 3 only to bins which contain at least three quartets.
+		 *-------------------------------------------------------------------------------------------*/
+
+		//printf("PHASE 2: IDENTIFIING RIGHT QUARTETS\n");
+		//printf("Right quartets hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, rightQuartetsTable)/1000000000.0);
+
+		sortRightQuartetsTable();
+
+		struct rightQuartetsEntry *q, *tmp;
+		u8 currentIndex[4];
+		u8 startIndex[4];
+		memcpy(currentIndex, rightQuartetsTable -> index, 4*sizeof(*currentIndex));
+		memcpy(startIndex, rightQuartetsTable -> index, 4*sizeof(*startIndex));
+		int counter = 0;
+
+		HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+			if (compareArray(q -> index, currentIndex, 4)) {
+				// Found a collision
+				counter++;
+				/*
+				if (counter == 3) {										
+					printf("3-collision found!\n");
+					printHex("Right quartet index", q -> index, 4);
+				}
+				*/
+			} else 	{
+				// Didn't find a collision: delete the elements with no sufficient collisions
+				if (counter < 3) {
+					while (counter > 0) {				
+						deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+						counter--;
+					}
+				}
+				counter = 1;
+				memcpy(currentIndex, q -> index, 4 * sizeof(*currentIndex));
+			}
+		}
+
+		// Delete the last quartet if not in a 3-collision
+		if (counter < 3) {
+			deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
+		}
+
+		//printRightQuartetsEntries();
+		printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
+		foundRQ[HASH_COUNT(rightQuartetsTable)] += 1;
+
+		//nRightQuartets[HASH_COUNT(rightQuartetsTable)]++;
+		//rightQuartets += HASH_COUNT(rightQuartetsTable);
+		
+		//u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
+
+		//HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+		//	if (!compareArray(q -> index, rightIndex, 4)) {
+		//		deleteRightQuartetsEntry(q);
+		//	}
+		//}
+
+		//realRightQuartets += HASH_COUNT(rightQuartetsTable);
+
+		// Free the memory used for the first hash table: the data we need now on are on the new hash table
+		//deleteAllRightQuartetsEntries();
+		//}
+
+		//for (int i = 0; i < 30; i++) {
+		//	printf("Number of right quartets: \t%d. \tFound: \t%d\n", i, nRightQuartets[i]);
+		//}
+
+		//printf("Right quartets found: \t%d, of which are real: \t%d\n", rightQuartets, realRightQuartets);
+
+		/*-------------------------------------------------------------------------------------------
+		 * 3. Analyzing Right Quartets: (TODO)
+		 *-------------------------------------------------------------------------------------------*/
+
+		u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
+		u8 diffAC[8], diffBD[8];
+		//u8 diffAB[8], diffCD[8];
+		//u8 Ca[8], Cb[8], Cc[8], Cd[8];
+
+		HASH_ITER(hh, rightQuartetsTable, q, tmp) {
+			if (!compareArray(q -> index, rightIndex, 4)) {
+				/*
+				for (int i = 1; i < 8; i++) {
+					Ca[i] = (q -> CaCbCcCd)[i];
+					Cb[i] = (q -> CaCbCcCd)[i + 8];
+					Cc[i] = (q -> CaCbCcCd)[i + 16];
+					Cd[i] = (q -> CaCbCcCd)[i + 24];
+				}
+
+				for (int i = 1; i < 8; i++) {
+					diffAC[i] = Ca[i] ^ Cc[i];
+					diffBD[i] = Cb[i] ^ Cd[i];
+					//diffAB[i] = Ca[i] ^ Cb[i];
+					//diffCD[i] = Cc[i] ^ Cd[i];
+				}
+
+				printHex("Ca XOR Cc", diffAC, 8);				
+				printHex("Cb XOR Cd", diffBD, 8);	
+				//printHex("Ca XOR Cb", diffAB, 8);				
+				//printHex("Cc XOR Cd", diffCD, 8);	
+				*/
+
+				deleteRightQuartetsEntry(q);
+			}
+		}
+
+		printf("I have found %d true right quartets.\n", HASH_COUNT(rightQuartetsTable));
+		realRQ[HASH_COUNT(rightQuartetsTable)] += 1;
+
+		deleteAllRightQuartetsEntries();
+	}
+
+	printf("FoundRQ:\t");
+	for (int u = 0; u < 40; u++) {
+		printf("%d, ", foundRQ[u]);
 	}
 	printf("\n");
-	/* leaves about 2^16 quartets with the required diﬀerences */
-	printf("I have found 2^%.1f potential right quartets.\n", log((double)HASH_COUNT(rightQuartetsTable))/log(2));
 
-	// Free the memory used for the first hash table: the data we need now on are on the new hash table
-	deleteAllDataCollectionEntries();
-
-	/*-------------------------------------------------------------------------------------------
-	 *		apply Step 3 only to bins which contain at least three quartets.
-	 *-------------------------------------------------------------------------------------------*/
-
-	printf("PHASE 2: IDENTIFIING RIGHT QUARTETS\n");
-	printf("Right quartets hash table overhead (GB): %.2f\n", HASH_OVERHEAD(hh, rightQuartetsTable)/1000000000.0);
-
-	sortRightQuartetsTable();
-
-	struct rightQuartetsEntry *q, *tmp;
-	u8 currentIndex[4];
-	u8 startIndex[4];
-	memcpy(currentIndex, rightQuartetsTable -> index, 4*sizeof(*currentIndex));
-	memcpy(startIndex, rightQuartetsTable -> index, 4*sizeof(*startIndex));
-	int counter = 0;
-
-	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
-		if (compareArray(q -> index, currentIndex, 4)) {
-			// Found a collision
-			counter++;
-			/*
-			if (counter == 3) {										
-				printf("3-collision found!\n");
-				printHex("Right quartet index", q -> index, 4);
-			}
-			*/
-		} else 	{
-			// Didn't find a collision: delete the elements with no sufficient collisions
-			if (counter < 3) {
-				while (counter > 0) {				
-					deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
-					counter--;
-				}
-			}
-			counter = 1;
-			memcpy(currentIndex, q -> index, 4 * sizeof(*currentIndex));
-		}
+	printf("RealRQ:\t\t");
+	for (int u = 0; u < 40; u++) {
+		printf("%d, ", realRQ[u]);
 	}
-
-	// Delete the last quartet if not in a 3-collision
-	if (counter < 3) {
-		deleteRightQuartetsEntry(findRightQuartetsEntry(currentIndex));
-	}
-
-	//printRightQuartetsEntries();
-	printf("I have found %d right quartets.\n", HASH_COUNT(rightQuartetsTable));
-
-	//nRightQuartets[HASH_COUNT(rightQuartetsTable)]++;
-	//rightQuartets += HASH_COUNT(rightQuartetsTable);
-	
-	//u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
-
-	//HASH_ITER(hh, rightQuartetsTable, q, tmp) {
-	//	if (!compareArray(q -> index, rightIndex, 4)) {
-	//		deleteRightQuartetsEntry(q);
-	//	}
-	//}
-
-	//realRightQuartets += HASH_COUNT(rightQuartetsTable);
-
-	// Free the memory used for the first hash table: the data we need now on are on the new hash table
-	//deleteAllRightQuartetsEntries();
-	//}
-
-	//for (int i = 0; i < 30; i++) {
-	//	printf("Number of right quartets: \t%d. \tFound: \t%d\n", i, nRightQuartets[i]);
-	//}
-
-	//printf("Right quartets found: \t%d, of which are real: \t%d\n", rightQuartets, realRightQuartets);
-
-	/*-------------------------------------------------------------------------------------------
-	 * 3. Analyzing Right Quartets: (TODO)
-	 *-------------------------------------------------------------------------------------------*/
-
-	u8 rightIndex[] = {0x83, 0xf2, 0x98, 0xfc};
-	u8 diffAC[8], diffBD[8];
-	//u8 diffAB[8], diffCD[8];
-	//u8 Ca[8], Cb[8], Cc[8], Cd[8];
-
-	HASH_ITER(hh, rightQuartetsTable, q, tmp) {
-		if (compareArray(q -> index, rightIndex, 4)) {
-			for (int i = 1; i < 8; i++) {
-				Ca[i] = (q -> CaCbCcCd)[i];
-				Cb[i] = (q -> CaCbCcCd)[i + 8];
-				Cc[i] = (q -> CaCbCcCd)[i + 16];
-				Cd[i] = (q -> CaCbCcCd)[i + 24];
-			}
-
-			for (int i = 1; i < 8; i++) {
-				diffAC[i] = Ca[i] ^ Cc[i];
-				diffBD[i] = Cb[i] ^ Cd[i];
-				//diffAB[i] = Ca[i] ^ Cb[i];
-				//diffCD[i] = Cc[i] ^ Cd[i];
-			}
-
-			printHex("Ca XOR Cc", diffAC, 8);				
-			printHex("Cb XOR Cd", diffBD, 8);	
-			//printHex("Ca XOR Cb", diffAB, 8);				
-			//printHex("Cc XOR Cd", diffCD, 8);	
-		}
-	}
+	printf("\n");
 
 	/*-------------------------------------------------------------------------------------------
 	 *	(a) For each remaining quartet (C_a, C_b, C_c, C_d), guess the 32-bit value of
