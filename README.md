@@ -7,5 +7,6 @@ This repository contains the following files:
 - FindRightQuartets.c: experiment containing only the first part of the attack, used for testing purposes.
 - uthash.h: C implementation for hash tables (https://troydhanson.github.io/uthash/)
 - Makefile: make file used to compile the attack.
+- Presentazione.pdf: presentation I used to expose my thesis to the commission.
 
 This attack is only a demo.
